@@ -1,6 +1,9 @@
 # Black Saber Hiring and Promotions
 A project adapted from a Data Analysis course at the University of Toronto (STA303/1002)
-Collaborators: [Claire Hsiung](https://github.com/claire-hsiung)
+#### Contributors: 
+* [Claire Hsiung](https://github.com/claire-hsiung)
+* [Yian Wang](https://github.com/yian-wang)
+
 #### Project Status: Active
 
 ## Project Introduction
