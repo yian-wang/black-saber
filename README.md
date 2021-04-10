@@ -22,11 +22,11 @@ Deliverable: Report for Black Saber's Board of Directors on gender disparity in 
 * R (ggplot, tidyverse (dplyr))
 
 ## Project Description
+<details>
+<summary>Gideon's emails</summary>
 <img src="https://github.com/yian-wang/black-saber/blob/main/images/email-1.png?raw=true" width="50%">
 <img src="https://github.com/yian-wang/black-saber/blob/main/images/email-2.png?raw=true" width="50%">
-
-
-
+</details>
 
 ## Findings Summary
 In Progress...
