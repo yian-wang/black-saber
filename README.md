@@ -14,7 +14,7 @@ Deliverable: Report for Black Saber's Board of Directors on gender disparity in 
 ### Needs of this project
 - Data Exploration/Descriptive Statistics
 - Data Processing/Wrangling and Cleaning
-- Statistical Modeling
+- Statistical Modelling
 - Reporting
 - Ethical Consideration
 
