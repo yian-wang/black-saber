@@ -1,10 +1,9 @@
 # Black Saber Hiring and Promotions
 A project adapted from a Data Analysis course at the University of Toronto (STA303/1002)
+#### Project Status: Active
 #### Contributors: 
 * [Claire Hsiung](https://github.com/claire-hsiung)
 * [Yian Wang](https://github.com/yian-wang)
-
-#### Project Status: Active
 
 ## Project Introduction
 This is a data analysis project investigating any potential biases in a hypothetical company's hiring and promotion processes. 
