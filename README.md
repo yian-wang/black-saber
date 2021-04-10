@@ -1,4 +1,4 @@
-# Black Saber Hiring and Promotions
+# Bias in Black Saber's Hiring and Promotions
 A project adapted from a Data Analysis course at the University of Toronto (STA303/1002)
 #### Project Status: Active
 #### Contributors: 
