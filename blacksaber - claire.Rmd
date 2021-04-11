@@ -64,8 +64,9 @@ _For each research question, you will want to briefly describe any data manipula
 
 ```{r}
 # This chunk provides an example of some things you can do with RMarkdown to make your report creation process easier
-
+#checking github
 # read in the data
+
 black_saber_current_employees <- read_csv("data/black-saber-current-employees.csv")
 
 ##3 PHASES 
