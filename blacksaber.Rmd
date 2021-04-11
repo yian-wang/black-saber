@@ -68,6 +68,14 @@ _For each research question, you will want to briefly describe any data manipula
 # read in the data
 black_saber_current_employees <- read_csv("data/black-saber-current-employees.csv")
 
+##3 PHASES 
+phase1 <- 
+  read.csv("data/phase1-new-grad-applicants-2020.csv")
+phase2 <- 
+  read.csv("data/phase2-new-grad-applicants-2020.csv")
+phase3 <- 
+  read.csv("data/phase3-new-grad-applicants-2020.csv")
+
 # create a visualisation
 my_plot <- black_saber_current_employees %>% 
   ggplot(aes(x = productivity)) +
