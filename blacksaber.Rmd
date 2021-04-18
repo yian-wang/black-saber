@@ -1,8 +1,8 @@
 ---
-title: "Report title"
-subtitle: "Subtitle"
-author: "Report prepared for Black Saber Software by Eminence Analytics"
-date: 2021-04-21
+title: "Potential Gender Biases in the Workplace"
+subtitle: "Investigating the Hiring Process, Promotions, and Salaries in Black Saber Software"
+author: "Report prepared for Black Saber Software by The Hive"
+date: April 21, 2021
 lang: "en"
 output:
   pdf_document:
@@ -10,7 +10,7 @@ output:
     toc: true
     toc_depth: 2
 titlepage: true
-titlepage-color: "6C3082"
+titlepage-color: "FFC300"
 titlepage-text-color: "FFFFFF"
 titlepage-rule-color: "FFFFFF"
 titlepage-rule-height: 2
@@ -18,7 +18,7 @@ titlepage-rule-height: 2
 
 ```{r, message = FALSE, echo=FALSE}
 library(tidyverse)
-# this should supress all code and messages
+# this should suppress all code and messages
 knitr::opts_chunk$set(include=FALSE)
 ```
 
@@ -57,24 +57,41 @@ _Provide a brief introduction to your report and outline what the report will co
 
 ### Research questions
 _Use bullet points to to describe the research questions you are going to address. Write in full sentences._
+Hiring
+Promotion
 
-## Informative title for section addressing a research question
+## Hiring Process
+```{r}
+bs_hiring1 = read_csv("data/phase1-new-grad-applicants-2020.csv")
+bs_hiring2 = read_csv("data/phase2-new-grad-applicants-2020.csv")
+bs_hiring3 = read_csv("data/phase3-new-grad-applicants-2020.csv")
+```
+
+```{r}
+sum(is.na(bs_hiring1))
+sum(is.na(bs_hiring2)) #checking to see if datasets have NAs to see (1) if we need to do anything about them (2) so we can filter them out in the next round when we're seeing who got into the next round
+
+round1_2 = full_join(bs_hiring1, bs_hiring2)
+round1_2 = round1_2 %>% 
+  #technical skills is only under hiring2, which means if an applicant's id has NA for this column, they did not move onto the next round
+  mutate(hired = !is.na(technical_skills)) %>%  
+  mutate(hired = as.integer(hired))
+```
+
+
+
+
+
+
 
 _For each research question, you will want to briefly describe any data manipulation, show some exploratory plots/summary tables, report on any methods you use (i.e. models you fit) and the conclusions you draw from these_
+
 
 ```{r}
 # This chunk provides an example of some things you can do with RMarkdown to make your report creation process easier
 
 # read in the data
 black_saber_current_employees <- read_csv("data/black-saber-current-employees.csv")
-
-##3 PHASES 
-phase1 <- 
-  read.csv("data/phase1-new-grad-applicants-2020.csv")
-phase2 <- 
-  read.csv("data/phase2-new-grad-applicants-2020.csv")
-phase3 <- 
-  read.csv("data/phase3-new-grad-applicants-2020.csv")
 
 # create a visualisation
 my_plot <- black_saber_current_employees %>% 
@@ -92,8 +109,9 @@ ggsave("images/example.png", width = 7, height = 4)
 
 ![](images/example.png)
 
-## Informative title for section addressing a research question
-## Informative title for section addressing a research question
+## Promotions 
+
+## Salary
 
 ```{r, include = FALSE}
 library(tidyverse)
@@ -112,13 +130,14 @@ _In this section you will summarize your findings across all the research questi
 
 *Complete this section with a brief bio for each member of your group. If you are completing the project individually, you only need to complete one for yourself. In that case, change the title of this section to 'Consultant profile' instead. Examples below. This section is only marked for completeness, clarity and professionalism, not 'truth' so you can write it as if we're a few years in the future. Put your current degree in as completed and/or add your first choice grad school program, whatever you like. What skills related skills would you most like to highlight? What job title do you want?*
 
-**Statsy McStatsstats**. Statsy is a senior consultant with Eminence Analytics. She specializes in data visualization. Statsy earned her Bachelor of Science, Specialist in Statistics Methods and Practice, from the University of Toronto in 2023.
+**Yian Wang**. Yian is a junior consultant at The Hive. She specializes in data visualization and analysis. Yian earned her Bachelor of Science, double majoring in Statistics and Economics, and minoring in Mathematics from the University of Toronto in June 2021. 
 
 **Datana Scatterplot**. Datana is a junior consultant with Eminence Analytics. They specialize in reproducible analysis and statistical communication. Datana earned their Bachelor of Science, Majoring in Computer Science and Statistics from the University of Toronto in 2024.
 
 ## Code of ethical conduct
 
 _This section should be fairly short, no more than half a page. Assume a general audience, much like your executive summary._
+
 
 * _Make at least three relevant statements about your company’s approach to ethical statistical consulting. These should be appropriately in line with professional conduct advice like the (Statistical Society of Canada Code of Conduct)[https://ssc.ca/sites/default/files/data/Members/public/Accreditation/ethics_e.pdf] or the (Ethical Guidelines for Statistical Practice from the American Statistical Society)[https://www.amstat.org/ASA/Your-Career/Ethical-Guidelines-for-Statistical-Practice.aspx]. For example, "the customer is always right" ISN’T the type of thing an ethical statistical consultant would include._
 *	_Be very careful not to just copy and paste from these other documents! Put things in your own words._
