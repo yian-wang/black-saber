@@ -62,28 +62,166 @@ Promotion
 
 ## Hiring Process
 ```{r}
-bs_hiring1 = read_csv("data/phase1-new-grad-applicants-2020.csv")
-bs_hiring2 = read_csv("data/phase2-new-grad-applicants-2020.csv")
-bs_hiring3 = read_csv("data/phase3-new-grad-applicants-2020.csv")
+phase1 = read_csv("data/phase1-new-grad-applicants-2020.csv")
+phase2 = read_csv("data/phase2-new-grad-applicants-2020.csv")
+phase3 = read_csv("data/phase3-new-grad-applicants-2020.csv")
+final_hires = read_csv("data/final-hires-newgrad_2020.csv")
 ```
 
 ```{r}
-sum(is.na(bs_hiring1))
-sum(is.na(bs_hiring2)) #checking to see if datasets have NAs to see (1) if we need to do anything about them (2) so we can filter them out in the next round when we're seeing who got into the next round
+#checking to see if datasets have NAs to see (1) if we need to do anything about them (2) so we can filter them out in the next round when we're seeing who got into the next round
+sum(is.na(phase1))
+sum(is.na(phase2)) 
+sum(is.na(phase3))
+```
 
-round1_2 = full_join(bs_hiring1, bs_hiring2)
+### Round 1
+```{r}
+round1_2 = full_join(phase1, phase2)
 round1_2 = round1_2 %>% 
   #technical skills is only under hiring2, which means if an applicant's id has NA for this column, they did not move onto the next round
-  mutate(hired = !is.na(technical_skills)) %>%  
-  mutate(hired = as.integer(hired))
+  mutate(next_round = !is.na(technical_skills)) %>%  
+  mutate(next_round = as.integer(next_round)) %>% 
+  select(-c(technical_skills, writing_skills, leadership_presence, speaking_skills)) #remove phase 2 data
+
+#split into software/data
+round1_data = round1_2 %>% 
+  filter(team_applied_for == "Data") %>% 
+  mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2))
+
+round1_software = round1_2 %>% 
+  filter(team_applied_for == "Software") %>% 
+  mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2))
+```
+
+``` {r}
+#see m/f/other demographics within each data/software applicant pool
+# visualizations
+
+r1_data_gender_plot = round1_data %>% 
+  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF", "#C4E48A")) +
+  #geom_histogram(colour = "grey", fill = "#6C3082") +
+  theme_minimal() +
+  labs(title = "Data Applicant Gender Breakdown (Round 1)", x = "Gender", y = "Number of Applicants") 
+#do we want a title or a caption for this?
+r1_data_gender_plot
+ggsave("images/r1_data_gender_plot.png", width = 7, height = 4)
+
+r1_software_gender_plot = round1_software %>% 
+  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF", "#C4E48A")) +
+  #geom_histogram(colour = "grey", fill = "#6C3082") +
+  theme_minimal() +
+  labs(title = "Software Applicant Gender Breakdown (Round 1)", x = "Gender", y = "Number of Applicants")
+r1_software_gender_plot
+#do we want a title or a caption for this?
+ggsave("images/r1_software_gender_plot.png", width = 7, height = 4)
+```
+![](images/r1_data_gender_plot.png)
+![](images/r1_software_gender_plot.png)
+
+```{r}
+#get counts for each gender in data -> for report
+table(round1_data$gender)
+#get counts for each gender in software -> for report
+table(round1_software$gender)
+```
+
+### Round 2
+```{r}
+round2_3 = full_join(phase2, phase3)
+
+round2_3 = round2_3 %>% 
+  #technical skills is only under hiring2, which means if an applicant's id has NA for this column, they did not move onto the next round
+  mutate(next_round = !is.na(interviewer_rating_1)) %>%  
+  mutate(next_round = as.integer(next_round)) %>% 
+  select(-c(interviewer_rating_1, interviewer_rating_2)) #remove phase 2 data
+
+#split into software/data
+round2_data = round2_3 %>% 
+  filter(team_applied_for == "Data") %>% 
+  mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2))
+
+round2_software = round2_3 %>% 
+  filter(team_applied_for == "Software") %>% 
+  mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2))
+```
+
+``` {r}
+#see m/f/other demographics within each data/software applicant pool
+# visualizations
+
+r2_data_gender_plot = round2_data %>% 
+  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF", "#C4E48A")) +
+  #geom_histogram(colour = "grey", fill = "#6C3082") +
+  theme_minimal() +
+  labs(title = "Data Applicant Gender Breakdown (Round 2)", x = "Gender", y = "Number of Applicants") 
+#do we want a title or a caption for this?
+r2_data_gender_plot
+ggsave("images/r2_data_gender_plot.png", width = 7, height = 4)
+
+r2_software_gender_plot = round2_software %>% 
+  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF", "#C4E48A")) +
+  #geom_histogram(colour = "grey", fill = "#6C3082") +
+  theme_minimal() +
+  labs(title = "Software Applicant Gender Breakdown (Round 2)", x = "Gender", y = "Number of Applicants")
+r2_software_gender_plot
+#do we want a title or a caption for this?
+ggsave("images/r2_software_gender_plot.png", width = 7, height = 4)
+```
+![](images/r2_data_gender_plot.png)
+![](images/r2_data_gender_plot.png)
+```{r}
+#get counts for each gender in data -> for report
+table(round2_data$gender)
+#get counts for each gender in software -> for report
+table(round2_software$gender)
+```
+
+### Round 3
+```{r}
+#combined stats of ppl that applied in round 3
+round3_combined = right_join(phase2, phase3)
+round3_combined = round3_combined %>% 
+  select(applicant_id, team_applied_for, gender,interviewer_rating_1,interviewer_rating_2)
+
+#people from round 3 who were hired
+round3_h = right_join(round3_combined, final_hires)
+
+#split into data/software
+round3_data = round3_combined %>% 
+  filter(team_applied_for == "Data") 
+# no more "prefer not to say" so we don't need to rearrange
+#%>% 
+  #mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2))
+
+round3_software = round3_combined %>% 
+  filter(team_applied_for == "Software") #%>% 
+  #mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2))
 ```
 
 
+```{r}
+#visualizations of round 3 applicants 
+r3_data_gender_plot = round3_data %>% 
+  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF")) +
+  #geom_histogram(colour = "grey", fill = "#6C3082") +
+  theme_minimal() +
+  labs(title = "Data Applicant Gender Breakdown (Round 3)", x = "Gender", y = "Number of Applicants") 
+#do we want a title or a caption for this?
+r3_data_gender_plot
+ggsave("images/r3_data_gender_plot.png", width = 7, height = 4)
 
-
-
-
-
+r3_software_gender_plot = round3_software %>% 
+  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF")) +
+  #geom_histogram(colour = "grey", fill = "#6C3082") +
+  theme_minimal() +
+  labs(title = "Software Applicant Gender Breakdown (Round 3)", x = "Gender", y = "Number of Applicants")
+r3_software_gender_plot
+#do we want a title or a caption for this?
+ggsave("images/r3_software_gender_plot.png", width = 7, height = 4)
+```
+![](images/r3_data_gender_plot.png)
+![](images/r3_data_gender_plot.png)
 _For each research question, you will want to briefly describe any data manipulation, show some exploratory plots/summary tables, report on any methods you use (i.e. models you fit) and the conclusions you draw from these_
 
 
