@@ -232,6 +232,50 @@ table(round3_data$gender)
 table(round3_software$gender)
 ```
 
+### Final Hires
+
+```{r}
+
+final_combined = round3_h %>% 
+  select(applicant_id, team_applied_for, gender)#= right_join(round3_combined, final_hires)
+
+#split into data/software
+hired_data = final_combined %>% 
+  filter(team_applied_for == "Data") 
+
+hired_software = final_combined %>% 
+  filter(team_applied_for == "Software")
+
+```
+
+```{r}
+#visualization
+final_data_gender_plot = hired_data %>% 
+  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF")) +
+  #geom_histogram(colour = "grey", fill = "#6C3082") +
+  theme_minimal() +
+  labs(title = "Final Hires Gender Breakdown (Data Team)", x = "Gender", y = "Number of Applicants") 
+#do we want a title or a caption for this?
+final_data_gender_plot
+ggsave("images/final_data_gender_plot.png", width = 7, height = 4)
+
+final_software_gender_plot = hired_data %>% 
+  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF")) +
+  #geom_histogram(colour = "grey", fill = "#6C3082") +
+  theme_minimal() +
+  labs(title = "Final Hires Gender Breakdown (Software Team)", x = "Gender", y = "Number of Applicants")
+final_software_gender_plot
+#do we want a title or a caption for this?
+ggsave("images/final_software_gender_plot.png", width = 7, height = 4)
+```
+![](images/final_data_gender_plot.png)
+![](images/final_software_gender_plot.png)
+```{r}
+#get counts for each gender in data -> for report
+table(hired_data$gender)
+#get counts for each gender in software -> for report
+table(hired_software$gender)
+```
 
 ```{r}
 # This chunk provides an example of some things you can do with RMarkdown to make your report creation process easier
