@@ -53,7 +53,11 @@ _This part of the report is much more comprehensive than the executive summary. 
 
 ## Introduction
 
+
+
+
 _Provide a brief introduction to your report and outline what the report will cover. This section is valuable for setting scope and expectations. _
+### Background
 
 ### Research questions
 _Use bullet points to to describe the research questions you are going to address. Write in full sentences._
@@ -126,15 +130,50 @@ table(round1_data$gender)
 table(round1_software$gender)
 ```
 
+<!-- by the looks of it the applicant pool is pretty even but lets go forward with investigating in case -->
+
+```{r}
+library(lme4)
+library(mgcv)
+
+#normal linear model
+hiring1_model = glm(next_round ~ cv + gpa + cover_letter, family = binomial(link = "logit"), data = round1_2)
+summary(hiring1_model)
+
+# add fixed effect for gender
+hiring1_gender_model = glmer(next_round ~ cv + gpa + cover_letter + (1 | gender),#(1 + genre | artist_name), 
+                data = round1_2, family = binomial(link = "logit"), nAGQ=0)
+summary(hiring1_gender_model)
+
+#let's see if we add an effect for team applied to - maybe the process for data and software are different?
+hiring1_team_gender = glmer(next_round ~ cv + gpa + cover_letter + (1 + team_applied_for | gender),
+                data = round1_2, family = binomial(link = "logit"), nAGQ=0)
+
+summary(hiring1_team_gender)
+
+#compare the effect between gender only and gender (rand int) + random slope for team 
+lmtest::lrtest(hiring1_gender_model, hiring1_team_gender)
+#hmm seems like not significant effect... we can continue with our simpler model
+#test the simple model against the original model with no random intercept for gender...investigate if there is a difference
+lmtest::lrtest(hiring1_model, hiring1_gender_model)
+
+#chi^2 p value small for both of them which means theres no difference in models if u add effect for gender, meaning model doesnt change based on gender and therefore there is no evidence of there being bias in phase 1 of the hiring process.
+
+
+```
+
+<!-- these models are confirmed by the fact that in round 2, the gender breakdown is pretty even  -->
+
+
 ### Round 2
 ```{r}
 round2_3 = full_join(phase2, phase3)
-
+#remove phase 2 columns
 round2_3 = round2_3 %>% 
   #technical skills is only under hiring2, which means if an applicant's id has NA for this column, they did not move onto the next round
   mutate(next_round = !is.na(interviewer_rating_1)) %>%  
   mutate(next_round = as.integer(next_round)) %>% 
-  select(-c(interviewer_rating_1, interviewer_rating_2)) #remove phase 2 data
+  select(-c(cover_letter, cv, gpa, extracurriculars, work_experience, interviewer_rating_1, interviewer_rating_2)) #remove phase 2 data
 
 #split into software/data
 round2_data = round2_3 %>% 
@@ -175,8 +214,66 @@ ggsave("images/r2_software_gender_plot.png", width = 7, height = 4)
 table(round2_data$gender)
 #get counts for each gender in software -> for report
 table(round2_software$gender)
+# get percentages
+```
+```{r}
+#lets visualize the indep variables real quick
+plot <- round2_3 %>% 
+  ggplot(aes(x = technical_skills)) +
+  geom_histogram(colour = "grey", fill = "#6C3082") +
+  theme_minimal() +
+  labs(title = "Look! A title. But do you want a title or a caption for your report?", x = "This is a changed x label")
+plot
+
+plot2 <- round2_3 %>% 
+  ggplot(aes(x = writing_skills)) +
+  geom_histogram(colour = "grey", fill = "#6C3082") +
+  theme_minimal() +
+  labs(title = "Look! A title. But do you want a title or a caption for your report?", x = "This is a changed x label")
+plot2
+
+
+plot3 <- round2_3 %>% 
+  ggplot(aes(x = speaking_skills)) +
+  geom_histogram(colour = "grey", fill = "#6C3082") +
+  theme_minimal() +
+  labs(title = "Look! A title. But do you want a title or a caption for your report?", x = "This is a changed x label")
+plot3
+
+plot4 <- round2_3 %>% 
+  ggplot(aes(x = leadership_presence)) +
+  geom_histogram(colour = "grey", fill = "#6C3082") +
+  theme_minimal() +
+  labs(title = "Look! A title. But do you want a title or a caption for your report?", x = "This is a changed x label")
+plot4
 ```
 
+```{r}
+#normal linear model
+hiring2_model = glm(next_round ~ technical_skills + writing_skills + leadership_presence + speaking_skills, family = binomial(link = "logit"), data = round2_3)
+summary(hiring2_model)
+```
+
+below isnt really relevant rn sorry
+
+```{r}
+# add fixed effect for gender
+hiring1_gender_model = glmer(next_round ~ cv + gpa + cover_letter + (1 | gender),#(1 + genre | artist_name), 
+                data = round1_2, family = binomial(link = "logit"), nAGQ=0)
+summary(hiring1_gender_model)
+
+#let's see if we add an effect for team applied to - maybe the process for data and software are different?
+hiring1_team_gender = glmer(next_round ~ cv + gpa + cover_letter + (1 + team_applied_for | gender),
+                data = round1_2, family = binomial(link = "logit"), nAGQ=0)
+
+summary(hiring1_team_gender)
+
+#compare the effect between gender only and gender (rand int) + random slope for team 
+lmtest::lrtest(hiring1_gender_model, hiring1_team_gender)
+#hmm seems like not significant effect... we can continue with our simpler model
+#test the simple model against the original model with no random intercept for gender...investigate if there is a difference
+lmtest::lrtest(hiring1_model, hiring1_gender_model)
+```
 
 ### Round 3
 ```{r}
@@ -186,19 +283,42 @@ round3_combined = round3_combined %>%
   select(applicant_id, team_applied_for, gender,interviewer_rating_1,interviewer_rating_2)
 
 #people from round 3 who were hired
-round3_h = right_join(round3_combined, final_hires)
+round3_h_int = right_join(round3_combined, final_hires)
+round3_h_int = round3_h %>% 
+  mutate(hired = 1)
+
+round3_hired = full_join(round3_combined, round3_h_int)
+#remove phase 2 columns
+round3_hired = round3_hired %>% 
+  #technical skills is only under hiring2, which means if an applicant's id has NA for this column, they did not move onto the next round
+  mutate_if(is.numeric, replace_na, replace = 0) %>% 
+  mutate(avg_interview = (interviewer_rating_1 + interviewer_rating_2)/2) # we see that those with the highest avg score get hired so i'm going to consolidate them 
+```
+
+```{r}
 
 #split into data/software
-round3_data = round3_combined %>% 
+round3_data = round3_hired %>% 
   filter(team_applied_for == "Data") 
 # no more "prefer not to say" so we don't need to rearrange
 #%>% 
   #mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2))
 
-round3_software = round3_combined %>% 
+round3_software = round3_hired %>% 
   filter(team_applied_for == "Software") #%>% 
   #mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2))
+
+#separate by gender
+round3_woman = round3_hired %>% 
+  filter(gender == "Woman")
+
+round3_man = round3_hired %>% 
+  filter(gender == "Man")
+
+mean(round3_woman$avg_interview)
+mean(round3_man$avg_interview)
 ```
+
 
 
 ```{r}
@@ -268,7 +388,8 @@ final_software_gender_plot
 #do we want a title or a caption for this?
 ggsave("images/final_software_gender_plot.png", width = 7, height = 4)
 ```
-![](images/final_data_gender_plot.png)
+![](images/final_data_gender_plot.png) 
+<!-- add caption lmao -->
 ![](images/final_software_gender_plot.png)
 ```{r}
 #get counts for each gender in data -> for report
@@ -320,9 +441,9 @@ _In this section you will summarize your findings across all the research questi
 
 *Complete this section with a brief bio for each member of your group. If you are completing the project individually, you only need to complete one for yourself. In that case, change the title of this section to 'Consultant profile' instead. Examples below. This section is only marked for completeness, clarity and professionalism, not 'truth' so you can write it as if we're a few years in the future. Put your current degree in as completed and/or add your first choice grad school program, whatever you like. What skills related skills would you most like to highlight? What job title do you want?*
 
-**Yian Wang**. Yian is a junior consultant at The Hive. She specializes in data visualization and analysis. Yian earned her Bachelor of Science, double majoring in Statistics and Economics, and minoring in Mathematics from the University of Toronto in June 2021. 
+**Yian Wang**. Yian is a junior data analyst at The Hive. She specializes in data visualization and making actionable insights. Yian earned her Bachelor of Science, double majoring in Statistics and Economics, and minoring in Mathematics from the University of Toronto in 2021. 
 
-**Datana Scatterplot**. Datana is a junior consultant with Eminence Analytics. They specialize in reproducible analysis and statistical communication. Datana earned their Bachelor of Science, Majoring in Computer Science and Statistics from the University of Toronto in 2024.
+**Claire Hsiung**. Datana is a junior consultant with Eminence Analytics. They specialize in reproducible analysis and statistical communication. Datana earned their Bachelor of Science, Majoring in Computer Science and Statistics from the University of Toronto in 2024.
 
 ## Code of ethical conduct
 
