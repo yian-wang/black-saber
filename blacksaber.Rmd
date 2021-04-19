@@ -177,6 +177,7 @@ table(round2_data$gender)
 table(round2_software$gender)
 ```
 
+
 ### Round 3
 ```{r}
 #combined stats of ppl that applied in round 3
@@ -223,6 +224,13 @@ ggsave("images/r3_software_gender_plot.png", width = 7, height = 4)
 ![](images/r3_data_gender_plot.png)
 ![](images/r3_data_gender_plot.png)
 _For each research question, you will want to briefly describe any data manipulation, show some exploratory plots/summary tables, report on any methods you use (i.e. models you fit) and the conclusions you draw from these_
+
+```{r}
+#get counts for each gender in data -> for report
+table(round3_data$gender)
+#get counts for each gender in software -> for report
+table(round3_software$gender)
+```
 
 
 ```{r}
