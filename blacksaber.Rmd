@@ -136,6 +136,8 @@ table(round1_software$gender)
 library(lme4)
 library(mgcv)
 
+#response is binary so we use glm bc family
+
 #normal linear model
 hiring1_model = glm(next_round ~ cv + gpa + cover_letter, family = binomial(link = "logit"), data = round1_2)
 summary(hiring1_model)
@@ -163,6 +165,55 @@ lmtest::lrtest(hiring1_model, hiring1_gender_model)
 ```
 
 <!-- these models are confirmed by the fact that in round 2, the gender breakdown is pretty even  -->
+
+<!-- below are additional models and tests but we see that adding these additional random effects are not significant -->
+```{r}
+hiring1_team_model = glmer(next_round ~ cv + gpa + cover_letter + (1 | team_applied_for),#(1 + genre | artist_name), 
+                data = round1_2, family = binomial(link = "logit"), nAGQ=0)
+summary(hiring1_team_model)
+
+hiring1_teamgender_model = glmer(next_round ~ cv + gpa + cover_letter + (1 | team_applied_for) + (1 | gender),#(1 + genre | artist_name), 
+                data = round1_2, family = binomial(link = "logit"), nAGQ=0)
+summary(hiring1_teamgender_model)
+
+lmtest::lrtest(hiring1_team_model, hiring1_teamgender_model)
+```
+
+<!-- test-->
+```{r}
+#normal linear model
+hiring1_model = glm(next_round ~ cv + gpa + cover_letter, family = binomial(link = "logit"), data = round1_2)
+summary(hiring1_model)
+
+# add fixed effect for gender
+hiring1_gender_model = glmer(next_round ~ cv + gpa + cover_letter + gender + (1 | team_applied_for),#(1 + genre | artist_name), 
+                data = round1_2, family = binomial(link = "logit"), nAGQ=0)
+summary(hiring1_gender_model)
+
+#let's see if we add an effect for team applied to - maybe the process for data and software are different?
+hiring1_team_gender = glmer(next_round ~ cv + gpa + cover_letter + (1 + gender | team_applied_for),
+                data = round1_2, family = binomial(link = "logit"), nAGQ=0)
+
+summary(hiring1_team_gender)
+
+#compare the effect between gender only and gender (rand int) + random slope for team 
+lmtest::lrtest(hiring1_gender_model, hiring1_team_gender)
+#hmm seems like not significant effect... we can continue with our simpler model
+#test the simple model against the original model with no random intercept for gender...investigate if there is a difference
+lmtest::lrtest(hiring1_model, hiring1_gender_model)
+
+#chi^2 p value small for both of them which means theres no difference in models if u add effect for gender, meaning model doesnt change based on gender and therefore there is no evidence of there being bias in phase 1 of the hiring process.
+
+
+```
+
+
+
+
+<!-- okay idk i need to figure out fixed vs random effects tmrw - which one should gender be? bc i thought it was like the (1| gender) one but thats random effect but im pretty sure thats a fixed effect...... fuckkkkkkkkkk meeeee  -->
+<!-- i guess yeah what i have above is promising? -->
+<!-- where its (1|team applied for) vs (1+gender|team) so im comparing differences in teams bc there might be differences there but seeing if gender affects these decisions? but like what happens if theres no difference b/w simple model and random effect for team? cam i add a fixed effect without a random effect?  -->
+
 
 
 ### Round 2
@@ -217,6 +268,7 @@ table(round2_software$gender)
 # get percentages
 ```
 ```{r}
+
 #lets visualize the indep variables real quick
 plot <- round2_3 %>% 
   ggplot(aes(x = technical_skills)) +
@@ -246,33 +298,35 @@ plot4 <- round2_3 %>%
   theme_minimal() +
   labs(title = "Look! A title. But do you want a title or a caption for your report?", x = "This is a changed x label")
 plot4
+
 ```
 
 ```{r}
+
 #normal linear model
 hiring2_model = glm(next_round ~ technical_skills + writing_skills + leadership_presence + speaking_skills, family = binomial(link = "logit"), data = round2_3)
 summary(hiring2_model)
-```
 
-below isnt really relevant rn sorry
 
-```{r}
 # add fixed effect for gender
-hiring1_gender_model = glmer(next_round ~ cv + gpa + cover_letter + (1 | gender),#(1 + genre | artist_name), 
-                data = round1_2, family = binomial(link = "logit"), nAGQ=0)
-summary(hiring1_gender_model)
+hiring2_gender_model = glmer(next_round ~ technical_skills + writing_skills + leadership_presence + speaking_skills + (1 | gender), data = round2_3, family = binomial(link = "logit"), nAGQ=0)
+
+summary(hiring2_gender_model)
 
 #let's see if we add an effect for team applied to - maybe the process for data and software are different?
-hiring1_team_gender = glmer(next_round ~ cv + gpa + cover_letter + (1 + team_applied_for | gender),
-                data = round1_2, family = binomial(link = "logit"), nAGQ=0)
+hiring2_team_gender = glmer(next_round ~ technical_skills + writing_skills + leadership_presence + speaking_skills + (1 + team_applied_for | gender),
+                data = round2_3, family = binomial(link = "logit"), nAGQ=0)
 
-summary(hiring1_team_gender)
+summary(hiring2_team_gender)
+
 
 #compare the effect between gender only and gender (rand int) + random slope for team 
-lmtest::lrtest(hiring1_gender_model, hiring1_team_gender)
+lmtest::lrtest(hiring2_gender_model, hiring2_team_gender)
 #hmm seems like not significant effect... we can continue with our simpler model
 #test the simple model against the original model with no random intercept for gender...investigate if there is a difference
-lmtest::lrtest(hiring1_model, hiring1_gender_model)
+lmtest::lrtest(hiring2_model, hiring2_gender_model)
+
+#high chi squared for both - we're good! no diff between model that seps gender 
 ```
 
 ### Round 3
@@ -296,7 +350,19 @@ round3_hired = round3_hired %>%
 ```
 
 ```{r}
+model = glmer(hired ~ avg_interview + gender + (1|team_applied_for), family = binomial(link='logit'), data = round3_hired, nAGQ =0)
+summary(model)
 
+```
+
+
+```{r}
+fixef(model) # males have lower pitches than females by an avg of 109hzsdfskdgls
+
+```
+
+
+```{r}
 #split into data/software
 round3_data = round3_hired %>% 
   filter(team_applied_for == "Data") 
@@ -342,7 +408,10 @@ r3_software_gender_plot
 ggsave("images/r3_software_gender_plot.png", width = 7, height = 4)
 ```
 ![](images/r3_data_gender_plot.png)
-![](images/r3_data_gender_plot.png)
+![](images/r3_software_gender_plot.png)
+
+we probably see a discrepency because of the systematic barriers women face in other professional spheres - the algorithm doesnt rate biasedly, though
+
 _For each research question, you will want to briefly describe any data manipulation, show some exploratory plots/summary tables, report on any methods you use (i.e. models you fit) and the conclusions you draw from these_
 
 ```{r}
