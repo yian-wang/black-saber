@@ -514,11 +514,31 @@ mean(o_retention$n/4)
 
 # how do we compare these to see if they're significant ?
 ```
+```{r}
+current_employees %>%
+ggplot(aes(x = gender, y = salary, colour = role_seniority)) +
+geom_boxplot() +
+facet_wrap(~role_seniority) +
+theme_minimal() +
+theme(legend.position = "none", axis.text.y = element_blank()) +
+labs(x = "Sex", y = "Salary") #Change colours
+```
+at first glance the salaries per seniority level per gender is generally even, though women seem to be less than men... let's investigate if this is significant or not
 
-
+```{r}
+current_employees %>%
+  mutate(role_seniority = factor(role_seniority, c("Entry-level","Junior I","Junior II","Senior I","Senior II","Senior III","Manager", "Director","Vice president"))) %>% 
+ggplot(aes(x = role_seniority, y = productivity, colour = role_seniority)) +
+geom_boxplot() +
+#facet_wrap(~role_seniority) +
+theme_minimal() +
+theme(legend.position = "none", axis.text.y = element_blank()) +
+labs(x = "Seniority Level", y = "Salary")
+```
+lol wait why is entry level mean being paid more? We expect to see an upward trend...
 
 We want to investigate whether or not the salaries are fair based on talent and value...
-The factors we want to use to investigate in that are the leadership and seniority, and productivity
+The factors we want to use to investigate in that are the leadership and seniority, and productivity, i think that's what talent and value are based in right?
 ```{r}
 # i know we need a random effect for (1+leadership | role_seniority) BECAUSE the leadership is dependent on their seniority, so like... the seniority is the random effect, but then there is a fixed effect for leadership *within* that role....
 # buttttt what model do we run? 
@@ -533,17 +553,24 @@ summary(model_sal2)
 model_sal3 = lmer(salary~(1|employee_id)+(1|team)+(1|role_seniority), data=current_employees)
 summary(model_sal3)
 
+model_sal4 = lmer(salary~gender+(1|employee_id)+(1|team), data=current_employees)
+summary(model_sal4) #removed role seniority random effect... test for difference
 
 lmtest::lrtest(model_sal, model_sal2)
 #this shows us that salaries differ depending on teams, so we use the more complex model to investigate the diff between gender
 
 lmtest::lrtest(model_sal, model_sal3)
 #significaant result.... when we have a fixed effect for gender, then the models differ, which means that salary might be biased, holding these random effects 
-
+lmtest::lrtest(model_sal, model_sal4) #ok there is a difference, between RE for seniority or not so it has to be something else affecting it... 
 
 #model1 = glm(salary~productivity + (1 | employee_id) + (1+leadership_for_level | role_seniority) + (1|financial_q) + (1|team), data = current_employees)
 ```
 
+```{r}
+#idk another random model lets see if it works
+model_sal3 = lmer(salary~(1 + role_seniority|employee_id)+(1|team), data=current_employees)
+summary(model_sal3)
+```
 
 ## Discussion
 
