@@ -100,10 +100,7 @@ ggsave("images/example.png", width = 7, height = 4)
 
 ```
 
-```{r, ECHO = TRUE}
-#we know someone has been promoted when we look at their role seniority 
-#FIRST add a column that indicates whether or not someone's role_seniority has changed 
-#can compare men and women promotions, control for everything else? 
+```{r, ECHO = TRUE, fig.width= 20, fig.height=30}
 roles = c("Entry-level", "Junior I", "Junior II", "Senior I", "Senior II", "Senior III", "Manager", "Director", "Vice president")
 promotions <- black_saber_current_employees %>% mutate("role_seniority" = factor(role_seniority, levels = roles)) %>% mutate("order" = as.numeric(role_seniority)/100)
 
@@ -114,11 +111,11 @@ ggplot(data = promotions, aes(x = factor(order), fill = gender)) +
   xlab("roles") +
   coord_flip() +
   theme(text = element_text(size=12)) +
-  #scale_y_continuous(breaks=seq(-40,40,10),labels=abs(seq(-40,40,10))) + 
+  scale_y_continuous(breaks=seq(-100,100,50),labels=abs(seq(-100,100,50))) + 
   scale_fill_brewer(palette="Dark2") +
   facet_wrap(~financial_q)
 ```
-
+Visually, we can see that as Black Saber grew and hired more people, there seems to be slightly more women in entry level roles than men. On the other hand, while we move into the more senior roles, there seems to be more men. This is something we want to consider and look out for in ouranalysis. Is this simply due to chance? Are men in these roles because they are on average more suited for them by looking into factors such as productivity and leadership/ Or does Black Saber have a bias towards promoting men. 
 #
 ```{r,}
 
