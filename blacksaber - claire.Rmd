@@ -93,7 +93,18 @@ ggsave("images/example.png", width = 7, height = 4)
 
 ![](images/example.png)
 
-## Informative title for section addressing a research question
+## Fair Promotions? Does Black Saber promote their employees using leadership level and productivity measures? Is there a difference between men and women getting promotions?  
+
+```{r, ECHO = TRUE}
+#we know someone has been promoted when we look at their role seniority 
+#FIRST add a column that indicates whether or not someone's role_seniority has changed 
+#can compare men and women promotions, control for everything else? 
+promotions <- black_saber_current_employees %>% mutate(role_seniority = (factor(role_seniority))) 
+##somehow i need to count how many times someone has been promoted 
+if promotions[1,]$employee_id == promotions[2,]$employee_id
+ggplot(data = promotions, aes(financial_q, role_seniority, colour = gender)) + geom_point()
+```
+
 ## Informative title for section addressing a research question
 
 ```{r, include = FALSE}
