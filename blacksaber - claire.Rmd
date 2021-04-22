@@ -115,12 +115,15 @@ ggplot(data = promotions, aes(x = factor(order), fill = gender)) +
   scale_fill_brewer(palette="Dark2") +
   facet_wrap(~financial_q)
 ```
-Visually, we can see that as Black Saber grew and hired more people, there seems to be slightly more women in entry level roles than men. On the other hand, while we move into the more senior roles, there seems to be more men. This is something we want to consider and look out for in our analysis. Is this simply due to chance? Are men in these roles because they are on average more suited for them by looking into factors such as productivity and leadership/ Or does Black Saber have a bias towards promoting men. 
+Visually, we can see that as Black Saber grew and hired more people, there seems to be slightly more women in entry level roles than men. On the other hand, while we move into the more senior roles, there seems to be more men. This is something we want to consider and look out for in our analysis. Is this simply due to chance? Are men in these roles because they are on average more suited for them by looking into factors such as productivity and leadership/ Or does Black Saber have a bias towards promoting men. This plot was made referencing Robert Lanfear's blog post https://www.robertlanfear.com/blog/files/visualising_gender_balance_R.html. 
 #
 ```{r,}
 #Make different models and compare the difference when adding things like random effects on role seniority 
 #also if there is bias, then holding factors like productivity and leadership constant between both genders to our model should produce different results? because holding them constant would mean that for that role, any gender would be suited for the job because they have the same skill set, so gender shouldnt matter 
 #could may do a log reg? like calculate the likelihood of men getting promoted vs women? 
+#primary response is role_seniority? 
+promotions <- promotions %>% mutate("leadership_for_level" = factor(leadership_for_level, levels = c("Needs improvement", "Appropriate for level","Exceeds Expectations"))) #changed to factor since we want to look at the levels of leadership on the promotions 
+
 
 ```
 ## Informative title for section addressing a research question
