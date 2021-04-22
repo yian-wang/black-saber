@@ -93,18 +93,36 @@ ggsave("images/example.png", width = 7, height = 4)
 
 ![](images/example.png)
 
-## Fair Promotions? Does Black Saber promote their employees using leadership level and productivity measures? Is there a difference between men and women getting promotions?  
+## Fair Promotions? Does Black Saber promote their employees using leadership level and productivity measures? Is there a difference between men and women getting promotions? 
+```{r}
+#tidy data? 
+
+
+```
 
 ```{r, ECHO = TRUE}
 #we know someone has been promoted when we look at their role seniority 
 #FIRST add a column that indicates whether or not someone's role_seniority has changed 
 #can compare men and women promotions, control for everything else? 
-promotions <- black_saber_current_employees %>% mutate(role_seniority = (factor(role_seniority))) 
-##somehow i need to count how many times someone has been promoted 
-if promotions[1,]$employee_id == promotions[2,]$employee_id
-ggplot(data = promotions, aes(financial_q, role_seniority, colour = gender)) + geom_point()
+roles = c("Entry-level", "Junior I", "Junior II", "Senior I", "Senior II", "Senior III", "Manager", "Director", "Vice president")
+promotions <- black_saber_current_employees %>% mutate("role_seniority" = factor(role_seniority, levels = roles)) %>% mutate("order" = as.numeric(role_seniority)/100)
+
+ggplot(data = promotions, aes(x = factor(order), fill = gender)) + 
+  geom_bar(data = dplyr::filter(promotions, gender=="Woman")) + geom_bar(data = dplyr::filter(promotions, gender=="Prefer not to say")) +
+  geom_bar(data = dplyr::filter(promotions, gender=="Man"),aes(y=..count..*(-1))) + 
+  scale_x_discrete(labels = roles) +
+  xlab("roles") +
+  coord_flip() +
+  theme(text = element_text(size=12)) +
+  #scale_y_continuous(breaks=seq(-40,40,10),labels=abs(seq(-40,40,10))) + 
+  scale_fill_brewer(palette="Dark2") +
+  facet_wrap(~financial_q)
 ```
 
+#
+```{r,}
+
+```
 ## Informative title for section addressing a research question
 
 ```{r, include = FALSE}
