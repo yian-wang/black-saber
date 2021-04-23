@@ -113,12 +113,14 @@ ggplot(data = promotions, aes(x = factor(order), fill = gender)) +
 Visually, we can see that as Black Saber grew and hired more people, there seems to be slightly more women in entry level roles than men. On the other hand, while we move into the more senior roles, there seems to be more men. This is something we want to consider and look out for in our analysis. Is this simply due to chance? Are men in these roles because they are on average more suited for them by looking into factors such as productivity and leadership/ Or does Black Saber have a bias towards promoting men. This plot was made referencing Robert Lanfear's blog post https://www.robertlanfear.com/blog/files/visualising_gender_balance_R.html. 
 #Models - using GLM 
 First, we changed the way some of our categorical factors were encoded into numbers. 
+- something to consider, cant use a linear model since we have several employees over several years, people with more years of experience are probably more likely to be promoted than entry-levels/new employees 
+
 ```{r,}
 #want to count the number of times a person has been promoted 
 library(lme4)
-promotions <- promotions %>% mutate(promocount = 0) %>% mutate_if(is.factor, as.numeric
-)
+promotions <- promotions %>% mutate(gender = factor(gender)) %>% mutate_if(is.factor, as.numeric) %>% group_by(employee_id, role_seniority)
 #make role seniority into numbers if id are the same and the next role seniority > than previous add 1 to promo count 
+glimpse(promotions)
 simple <- lm(role_seniority ~ gender, data = promotions)
 
 promo <- lmer(role_seniority ~ (1|employee_id), data = promotions)
@@ -136,11 +138,13 @@ promotions <- promotions %>% mutate("leadership_for_level" = factor(leadership_f
 
 
 ```
-## Informative title for section addressing a research question
+#Salary stuff 
 
 ```{r, include = FALSE}
 library(tidyverse)
 library(lme4)
+promotions <- promotions %>% mutate(salary = str_remove_all(salary,'\\$')) %>% mutate(salary = str_remove_all(salary, ",")) %>% mutate(salary = as.numeric(salary))
+salary <- lmer(salary ~ (1|employee_id) + leadership_for_level + productivity + gender, data = promotions) #employee IDs are not independent since this data set is over years so random effect on employee id? 
 ```
 
 ## Discussion
