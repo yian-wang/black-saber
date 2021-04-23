@@ -144,7 +144,8 @@ promotions <- promotions %>% mutate("leadership_for_level" = factor(leadership_f
 library(tidyverse)
 library(lme4)
 promotions <- promotions %>% mutate(salary = str_remove_all(salary,'\\$')) %>% mutate(salary = str_remove_all(salary, ",")) %>% mutate(salary = as.numeric(salary))
-salary <- lmer(salary ~ (1|employee_id) + leadership_for_level + productivity + gender, data = promotions) #employee IDs are not independent since this data set is over years so random effect on employee id? 
+##SHOULD MAKE A PLOT - right-skewed dist might be "fixed" by including another variable in the model (LMM)
+salary <- lmer(salary ~ role_seniority + leadership_for_level + productivity + gender +(1|financial_q), data = promotions) #employee IDs are not independent since this data set is over years so random effect on employee id and financial quarter? 
 ```
 
 ## Discussion
