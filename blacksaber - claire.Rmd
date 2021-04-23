@@ -93,12 +93,7 @@ ggsave("images/example.png", width = 7, height = 4)
 
 ![](images/example.png)
 
-## Fair Promotions? Does Black Saber promote their employees using leadership level and productivity measures? Is there a difference between men and women getting promotions? 
-```{r}
-#tidy data? 
-
-
-```
+## First general plot, number of workers by gender in each role 
 
 ```{r, ECHO = TRUE, fig.width= 20, fig.height=30}
 roles = c("Entry-level", "Junior I", "Junior II", "Senior I", "Senior II", "Senior III", "Manager", "Director", "Vice president")
@@ -116,13 +111,28 @@ ggplot(data = promotions, aes(x = factor(order), fill = gender)) +
   facet_wrap(~financial_q)
 ```
 Visually, we can see that as Black Saber grew and hired more people, there seems to be slightly more women in entry level roles than men. On the other hand, while we move into the more senior roles, there seems to be more men. This is something we want to consider and look out for in our analysis. Is this simply due to chance? Are men in these roles because they are on average more suited for them by looking into factors such as productivity and leadership/ Or does Black Saber have a bias towards promoting men. This plot was made referencing Robert Lanfear's blog post https://www.robertlanfear.com/blog/files/visualising_gender_balance_R.html. 
-#
+#Models - using GLM 
+First, we changed the way some of our categorical factors were encoded into numbers. 
+```{r,}
+#want to count the number of times a person has been promoted 
+library(lme4)
+promotions <- promotions %>% mutate(promocount = 0) %>% mutate_if(is.factor, as.numeric
+)
+#make role seniority into numbers if id are the same and the next role seniority > than previous add 1 to promo count 
+simple <- lm(role_seniority ~ gender, data = promotions)
+
+promo <- lmer(role_seniority ~ (1|employee_id), data = promotions)
+
+
+  
+```
+
 ```{r,}
 #Make different models and compare the difference when adding things like random effects on role seniority 
 #also if there is bias, then holding factors like productivity and leadership constant between both genders to our model should produce different results? because holding them constant would mean that for that role, any gender would be suited for the job because they have the same skill set, so gender shouldnt matter 
 #could may do a log reg? like calculate the likelihood of men getting promoted vs women? 
 #primary response is role_seniority? 
-promotions <- promotions %>% mutate("leadership_for_level" = factor(leadership_for_level, levels = c("Needs improvement", "Appropriate for level","Exceeds Expectations"))) #changed to factor since we want to look at the levels of leadership on the promotions 
+promotions <- promotions %>% mutate("leadership_for_level" = factor(leadership_for_level, levels = c("Needs improvement", "Appropriate for level","Exceeds expectations"))) #changed to factor since we want to look at the levels of leadership on the promotions 
 
 
 ```
