@@ -167,10 +167,11 @@ current_employees = current_employees %>% mutate(salary = str_remove_all(salary,
 
 #want to visualize mean salary for each financial quarter per gender - helpful table but idk how to visualize
 genderprop <- current_employees%>% group_by(gender,financial_q) %>% summarise(gendercount = n(), meansalary = mean(salary)) #%>% group_by(financial_q) %>% #mutate(prop = gendercount/sum(gendercount))
+ggplot(genderprop, aes(x= financial_q, y = meansalary)) + geom_bar(aes(fill = gender), position = "dodge", stat = "identity", width = 0.7) + theme(axis.text.x = element_text(angle = 90))
 
 ```
 
-
+this plot tells us, as the company was starting, women and prefer not to say, on average were making more, however, as we move closer to 2020, we see men beginning to make more. 
 ```{r,}
 sum(genderprop$gendercount)
 current_males = current_employees %>% 
