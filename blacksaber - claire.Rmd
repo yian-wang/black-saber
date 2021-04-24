@@ -115,40 +115,25 @@ Visually, we can see that as Black Saber grew and hired more people, there seems
 #Models - using GLM 
 First, we changed the way some of our categorical factors were encoded into numbers. 
 - something to consider, cant use a linear model since we have several employees over several years, people with more years of experience are probably more likely to be promoted than entry-levels/new employees 
-
+#Data Manipulation 
 ```{r,}
 #want to count the number of times a person has been promoted 
 library(lme4)
-promotions <- promotions %>% mutate(gender = factor(gender)) %>% mutate_if(is.factor, as.numeric) %>% group_by(employee_id) %>% mutate("promoted" = '0')
-#make role seniority into numbers if id are the same and the next role seniority > than previous add 1 to promo count #(1+gender|seniority) gives us means for seniority 
+
+promotions <- promotions %>% mutate(gender = factor(gender)) %>% mutate(gender =  fct_relevel(gender, "Woman", after = 1)) %>% 
+mutate(leadership_for_level = factor(leadership_for_level)) %>% 
+mutate(role_seniority = factor(role_seniority)) %>% mutate_if(is.factor, as.numeric) %>% group_by(employee_id) %>% arrange(financial_q) %>% mutate("promoted" = ifelse(role_seniority > lag(role_seniority), 1, 0)) %>% mutate(promoted = factor(promoted))  
+#changing NAs 
+promotions <- promotions %>% mutate(promoted = replace_na(promoted,0))
+
+ #(1+gender|seniority) gives us means for seniority 
 ```
-#Separating financial quarters 
+#Using GLM and Logistic Regression to Answer: Are men more likely to be promoted? 
 ```{r,}
-#splitting into financial quarters 
-promotions_2015Q4<- promotions %>% filter(financial_q == "2015 Q4")
-
-promotions_2016Q1 <- promotions %>% filter(financial_q == "2016 Q1") %>% mutate(promoted = ifelse(role_seniority > promotions_2015Q4$role_seniority, 1, 0))
-
-promotions_2016Q2 <- promotions %>% filter(financial_q == "2016 Q2")
-promotions_2016Q3 <- promotions %>% filter(financial_q == "2016 Q3")
-promotions_2016Q4 <- promotions %>% filter(financial_q == "2016 Q4")
-promotions_2017Q1 <- promotions %>% filter(financial_q == "2017 Q1")
-promotions_2017Q2 <- promotions %>% filter(financial_q == "2017 Q2")
-promotions_2017Q3 <- promotions %>% filter(financial_q == "2017 Q3")
-promotions_2017Q4 <- promotions %>% filter(financial_q == "2017 Q4")
-promotions_2018Q1 <- promotions %>% filter(financial_q == "2018 Q1")
-promotions_2018Q2 <- promotions %>% filter(financial_q == "2018 Q2")
-promotions_2018Q3 <- promotions %>% filter(financial_q == "2018 Q3")
-promotions_2018Q4 <- promotions %>% filter(financial_q == "2018 Q4")
-promotions_2019Q1 <- promotions %>% filter(financial_q == "2019 Q1")
-promotions_2019Q2 <- promotions %>% filter(financial_q == "2019 Q2")
-promotions_2019Q3 <- promotions %>% filter(financial_q == "2019 Q3")
-promotions_2019Q4 <- promotions %>% filter(financial_q == "2019 Q4")
-promotions_2020Q1 <- promotions %>% filter(financial_q == "2020 Q1")
-promotions_2020Q2 <- promotions %>% filter(financial_q == "2020 Q2")
-promotions_2020Q3 <- promotions %>% filter(financial_q == "2020 Q3")
-promotions_2020Q4 <- promotions %>% filter(financial_q == "2020 Q4")
-
+ggplot(promotions, aes(promoted)) + geom_bar(aes(fill = gender)) + theme_classic()
+```
+#Models
+```{r,}
 
 simple <- lm(role_seniority ~ gender, data = promotions)
 
@@ -156,9 +141,6 @@ promo <- lmer(role_seniority ~ (1|employee_id) + gender, data = promotions)
 
 
   
-```
-```{r,}
-test <- promotions %>% group_by(employee_id) %>% arrange(financial_q) %>% mutate("promoted" = ifelse(role_seniority > lag(role_seniority, default =  0), 1, 0))
 ```
 
 ```{r,}
@@ -170,7 +152,106 @@ promotions <- promotions %>% mutate("leadership_for_level" = factor(leadership_f
 
 
 ```
-#Salary stuff 
+
+## Salary - combining yian and claire's stuff 
+
+```{r, warning=FALSE, message=FALSE}
+current_employees = read_csv("data/black-saber-current-employees.csv")
+unique(current_employees$team) # what teams are there?
+count(current_employees, gender) #counts for everything, put these into a table but also do this for the hiring section
+# note that we need to add a random effect for ID !!!!!! regardless!!!! 
+```
+
+```{r}
+current_employees = current_employees %>% mutate(salary = str_remove_all(salary,'\\$')) %>% mutate(salary = str_remove_all(salary, ",")) %>% mutate(salary = as.numeric(salary)) %>% mutate(gender = factor(gender)) %>% mutate(gender = fct_relevel(gender, "Woman", after = 1))
+
+#want to visualize mean salary for each financial quarter per gender - helpful table but idk how to visualize
+genderprop <- current_employees%>% group_by(gender,financial_q) %>% summarise(gendercount = n(), meansalary = mean(salary)) #%>% group_by(financial_q) %>% #mutate(prop = gendercount/sum(gendercount))
+
+```
+
+
+```{r,}
+sum(genderprop$gendercount)
+current_males = current_employees %>% 
+  filter(gender=="Man")
+mean(current_males$salary)
+
+current_females = current_employees %>% 
+  filter(gender=="Woman")
+mean(current_females$salary)
+
+current_other = current_employees %>% 
+  filter(gender=="Prefer not to say")
+mean(current_other$salary)
+
+# put these values into a table
+#looks okay but males seem higher so lets check it out
+```
+
+```{r}
+# more wrangling!!
+# 1) should productivity be binary? <50 = not satisfactory = 50: satisfactory, >50: better than expected ... maybe not
+# 2) leadership for level.... 
+# 3) should we look at the average amount of time someone stays in thecompany depending on gender? that would just be the average amount of times their ID shows up
+#average retention rate!
+m_retention = count(current_males, employee_id)
+mean(m_retention$n/4)
+f_retention = count(current_females, employee_id)
+mean(f_retention$n/4)
+o_retention = count(current_other, employee_id)
+mean(o_retention$n/4)
+# how do we compare these to see if they're significant ?
+```
+```{r}
+current_employees %>%
+ggplot(aes(x = gender, y = salary, colour = role_seniority)) +
+geom_boxplot() +
+facet_wrap(~role_seniority) +
+theme_minimal() +
+theme(legend.position = "none", axis.text.y = element_blank()) +
+labs(x = "Sex", y = "Salary") #Change colours
+```
+at first glance the salaries per seniority level per gender is generally even, though women seem to be less than men... let's investigate if this is significant or not
+
+```{r}
+current_employees %>%
+  mutate(role_seniority = factor(role_seniority, c("Entry-level","Junior I","Junior II","Senior I","Senior II","Senior III","Manager", "Director","Vice president"))) %>% 
+ggplot(aes(x = role_seniority, y = productivity, colour = role_seniority)) +
+geom_boxplot() +
+#facet_wrap(~role_seniority) +
+theme_minimal() +
+theme(legend.position = "none", axis.text.y = element_blank()) +
+labs(x = "Seniority Level", y = "Salary")
+```
+lol wait why is entry level mean being paid more? We expect to see an upward trend...
+
+We want to investigate whether or not the salaries are fair based on talent and value...
+The factors we want to use to investigate in that are the leadership and seniority, and productivity, i think that's what talent and value are based in right?
+```{r}
+# i know we need a random effect for (1+leadership | role_seniority) BECAUSE the leadership is dependent on their seniority, so like... the seniority is the random effect, but then there is a fixed effect for leadership *within* that role....
+# buttttt what model do we run? 
+model_sal = lmer(salary~gender+(1|employee_id)+(1|team)+(1|role_seniority), data=current_employees)
+summary(model_sal)
+model_sal2 = lmer(salary~gender+(1|employee_id)+(1|role_seniority), data=current_employees)
+summary(model_sal2)
+model_sal3 = lmer(salary~(1|employee_id)+(1|team)+(1|role_seniority), data=current_employees)
+summary(model_sal3)
+model_sal4 = lmer(salary~gender+(1|employee_id)+(1|team), data=current_employees)
+summary(model_sal4) #removed role seniority random effect... test for difference
+lmtest::lrtest(model_sal, model_sal2)
+#this shows us that salaries differ depending on teams, so we use the more complex model to investigate the diff between gender
+lmtest::lrtest(model_sal, model_sal3)
+#significaant result.... when we have a fixed effect for gender, then the models differ, which means that salary might be biased, holding these random effects 
+lmtest::lrtest(model_sal, model_sal4) #ok there is a difference, between RE for seniority or not so it has to be something else affecting it... 
+#model1 = glm(salary~productivity + (1 | employee_id) + (1+leadership_for_level | role_seniority) + (1|financial_q) + (1|team), data = current_employees)
+```
+
+```{r}
+#idk another random model lets see if it works
+model_sal3 = lmer(salary~(1 + role_seniority|employee_id)+(1|team), data=current_employees)
+summary(model_sal3)
+```
 
 ```{r, include = FALSE}
 library(tidyverse)
