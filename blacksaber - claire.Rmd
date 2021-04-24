@@ -166,12 +166,14 @@ count(current_employees, gender) #counts for everything, put these into a table 
 current_employees = current_employees %>% mutate(salary = str_remove_all(salary,'\\$')) %>% mutate(salary = str_remove_all(salary, ",")) %>% mutate(salary = as.numeric(salary)) %>% mutate(gender = factor(gender)) %>% mutate(gender = fct_relevel(gender, "Woman", after = 1))
 
 #want to visualize mean salary for each financial quarter per gender - helpful table but idk how to visualize
-genderprop <- current_employees%>% group_by(gender,financial_q) %>% summarise(gendercount = n(), meansalary = mean(salary)) #%>% group_by(financial_q) %>% #mutate(prop = gendercount/sum(gendercount))
-ggplot(genderprop, aes(x= financial_q, y = meansalary)) + geom_bar(aes(fill = gender), position = "dodge", stat = "identity", width = 0.7) + theme(axis.text.x = element_text(angle = 90))
+genderprop <- current_employees%>% group_by(gender,financial_q) %>% summarise(gendercount = n(), meansalary = mean(salary)) 
+
+salary_by_quarter_gender <- ggplot(genderprop, aes(x= financial_q, y = meansalary)) + geom_bar(aes(fill = gender), position = "dodge", stat = "identity", width = 0.7) + theme(axis.text.x = element_text(angle = 90)) #CHANGE COLOUR AND TITLES 
+salary_by_quarter_gender
 
 ```
 
-this plot tells us, as the company was starting, women and prefer not to say, on average were making more, however, as we move closer to 2020, we see men beginning to make more. 
+this plot tells us, as the company was starting, women and prefer not to say, on average were making more, however, as we move closer to 2020, we see men beginning to make more. Is this difference significant? 
 ```{r,}
 sum(genderprop$gendercount)
 current_males = current_employees %>% 
@@ -242,31 +244,32 @@ model_sal4 = lmer(salary~gender+(1|employee_id)+(1|team), data=current_employees
 summary(model_sal4) #removed role seniority random effect... test for difference
 lmtest::lrtest(model_sal, model_sal2)
 #this shows us that salaries differ depending on teams, so we use the more complex model to investigate the diff between gender
-lmtest::lrtest(model_sal, model_sal3)
+lmtest::lrtest(model_sal3, model_sal)
 #significaant result.... when we have a fixed effect for gender, then the models differ, which means that salary might be biased, holding these random effects 
 lmtest::lrtest(model_sal, model_sal4) #ok there is a difference, between RE for seniority or not so it has to be something else affecting it... 
-#model1 = glm(salary~productivity + (1 | employee_id) + (1+leadership_for_level | role_seniority) + (1|financial_q) + (1|team), data = current_employees)
+#these test tells use we should probably use model_sal 
+
+#should we have a random slope with leadership level and role seniority? 
+model_sal5 = lmer(salary~gender+(1|employee_id)+(1|team)+(1+ leadership_for_level|role_seniority), data=current_employees) #added random slope because leadership requirements are different for different roles 
+lmtest::lrtest(model_sal, model_sal5) #this tells us that there is an interaction between leadership and role seniority --> significant use model_sal5 
+#lastly, does productivity effect how much someone is paid? 
+model_sal6= lmer(salary~gender+(1|employee_id)+(1|team)+(1+ leadership_for_level|role_seniority) + (1|productivity), data=current_employees) #productivity added as a RE since it is different per employee
+lmtest::lrtest(model_sal5, model_sal6) #model_sal6 seems to be significant- use as final model 
+final_sal_model <- model_sal6
+
+#Looks like we have found the best model to describe our data, now we wanted to see how including gender vs not including it effects our model 
+finalmodel_nogender <- lmer(salary ~ (1|employee_id)+(1|team)+(1+ leadership_for_level|role_seniority) + (1|productivity), data=current_employees)
+
+lmtest::lrtest(final_sal_model,finalmodel_nogender)
+#more complicated final model with gender as a fixed effect explains our data better. We have strong evidence against the null hypothesis that the simpler model without gender fits the data just as well 
+summary(final_sal_model)
+```
+Through creating various models to test different fixed and random effects in our data, we found that gender is a significant fixed effect in our model (when controlling for other variables that may contribute to salary). That is we saw that gender does in fact impact the expected salary we can expect to see from an employee. 
+
+More specifically, we can expect to see women and those who have indicated "prefer not to say" under gender making approximately \[$2248.2\] and \[$1104.1\] less respectively than their male counterparts.    
+
 ```
 
-```{r}
-#idk another random model lets see if it works
-model_sal3 = lmer(salary~(1 + role_seniority|employee_id)+(1|team), data=current_employees)
-summary(model_sal3)
-```
-
-```{r, include = FALSE}
-library(tidyverse)
-library(lme4)
-promotions <- promotions %>% mutate(salary = str_remove_all(salary,'\\$')) %>% mutate(salary = str_remove_all(salary, ",")) %>% mutate(salary = as.numeric(salary))
-##SHOULD MAKE A PLOT - right-skewed dist might be "fixed" by including another variable in the model (LMM)
-salary_bygender <- lmer(salary ~ gender + (1|financial_q) +(1|employee_id), data = promotions) 
-summary(salary_bygender)
-#this tells us that on average, people that have indicated prefer not to say or woman as their gender earn around $3731 and $5596 less respectively. But perhaps productivity and leadership influence this as well - fixed effect 
-salary_leadership_productivity <- lmer(salary ~ gender + (1|financial_q) +(1|employee_id) + leadership_for_level + productivity, data = promotions) 
-coef(salary_leadership_productivity)
-
-#add random effect on team - perhaps different teams effect salary, 
-```
 
 ## Discussion
 
