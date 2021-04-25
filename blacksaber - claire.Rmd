@@ -97,11 +97,12 @@ ggsave("images/example.png", width = 7, height = 4)
 
 ```{r, ECHO = TRUE, fig.width= 20, fig.height=30}
 roles = c("Entry-level", "Junior I", "Junior II", "Senior I", "Senior II", "Senior III", "Manager", "Director", "Vice president")
-promotions <- black_saber_current_employees %>% mutate("role_seniority" = factor(role_seniority, levels = roles)) %>% mutate("order" = as.numeric(role_seniority)/100)
 
-ggplot(data = promotions, aes(x = factor(order), fill = gender)) + 
-  geom_bar(data = dplyr::filter(promotions, gender=="Woman")) + geom_bar(data = dplyr::filter(promotions, gender=="Prefer not to say")) +
-  geom_bar(data = dplyr::filter(promotions, gender=="Man"),aes(y=..count..*(-1))) + 
+promotionsbyfinancialq <- black_saber_current_employees %>% mutate("role_seniority" = factor(role_seniority, levels = roles)) %>% mutate("order" = as.numeric(role_seniority)/100)
+
+ggplot(data = promotionsbyfinancialq, aes(x = factor(order), fill = gender)) + 
+  geom_bar(data = dplyr::filter(promotionsbyfinancialq, gender=="Woman")) + geom_bar(data = dplyr::filter(promotionsbyfinancialq, gender=="Prefer not to say")) +
+  geom_bar(data = dplyr::filter(promotionsbyfinancialq, gender=="Man"),aes(y=..count..*(-1))) + 
   scale_x_discrete(labels = roles) +
   xlab("roles") +
   coord_flip() +
@@ -120,24 +121,48 @@ First, we changed the way some of our categorical factors were encoded into numb
 #want to count the number of times a person has been promoted 
 library(lme4)
 
-promotions <- promotions %>% mutate(gender = factor(gender)) %>% mutate(gender =  fct_relevel(gender, "Woman", after = 1)) %>% 
-mutate(leadership_for_level = factor(leadership_for_level)) %>% 
-mutate(role_seniority = factor(role_seniority)) %>% mutate_if(is.factor, as.numeric) %>% group_by(employee_id) %>% arrange(financial_q) %>% mutate("promoted" = ifelse(role_seniority > lag(role_seniority), 1, 0)) %>% mutate(promoted = factor(promoted))  
-#changing NAs 
-promotions <- promotions %>% mutate(promoted = replace_na(promoted,0))
+promotions <- black_saber_current_employees %>% mutate("role_seniority" = factor(role_seniority, levels = roles))%>% mutate(role_seniority = factor(role_seniority)) %>% mutate_if(is.factor, as.numeric) %>% group_by(employee_id) %>% arrange(financial_q) %>% mutate("promoted" = ifelse(role_seniority > lag(role_seniority), 1, 0)) %>% mutate(promoted = factor(promoted)) %>% mutate(gender = factor(gender)) %>% mutate(gender =  fct_relevel(gender, "Woman", after = 1)) %>% 
+mutate(leadership_for_level = factor(leadership_for_level)) %>% mutate("leadership_for_level" = factor(leadership_for_level, levels = c("Needs improvement", "Appropriate for level","Exceeds expectations"))) %>% mutate(promoted = replace_na(promoted,0))
 
  #(1+gender|seniority) gives us means for seniority 
 ```
 #Using GLM and Logistic Regression to Answer: Are men more likely to be promoted? 
 ```{r,}
-ggplot(promotions, aes(promoted)) + geom_bar(aes(fill = gender)) + theme_classic()
+promotion_by_gender <- promotions %>% group_by(gender) %>% summarise(numberofpromos = n()) %>% mutate(prop = numberofpromos/sum(numberofpromos))
+
+totalpromo <- ggplot(promotions, aes(x = promoted, fill = gender)) + geom_bar(position = "fill")
+totalpromo#tells us that a larger proportion of men 
+#by team - important factor to consider
+teampromo <- totalpromo + facet_wrap(~team)
+teampromo
+#however, there are a lot of things that can effect this such as team, leadership, productivity, role seniority etc 
 ```
 #Models
+We will use a Generalized Linear Model with promoted as our binary response variable. 
 ```{r,}
+promomodel1 <- glm(promoted ~ gender, family = binomial(link = "logit"), data = promotions) 
+summary(promomodel1) 
+#this tells us that for genders that are not male, you are exp(-0.386) = 0.68. This tells us that the odds of women being promoted is 0.68 times less likely than men (prefer not to say not significant)
 
-simple <- lm(role_seniority ~ gender, data = promotions)
+#but what if we control for the team they are in 
+promomodel2 <- glm(promoted ~ gender + team, family = binomial(link = "logit"), data = promotions) 
+summary(promomodel2) #adding team as a coeff had no signicant change to the model 
 
-promo <- lmer(role_seniority ~ (1|employee_id) + gender, data = promotions)
+#what about accounting for leadership? 
+promomodel3 <- glm(promoted ~ gender + leadership_for_level, family = binomial(link = "logit"), data = promotions) 
+summary(promomodel3) #also no significant change, gender is still a significant factor in being promoted
+
+#what about productivity? 
+promomodel4 <- glm(promoted ~ gender + productivity, family = binomial(link = "logit"), data = promotions) 
+summary(promomodel4) #productivity is significant but it does not change the the difference we see in women being promoted 
+
+#what if productivity was binary? 
+
+#what about role seniority? more role seniority could increase your chances of being promoted but at the same time in very high levels there are less spots 
+promomodel5 <- glm(promoted ~ gender + productivity + role_seniority, family = binomial(link = "logit"), data = promotions) 
+summary(promomodel5) #significant exp(0.133) = 1.15 times more likely to be promoted as your seniority goes up but gender is significant 
+
+
 
 
   
@@ -148,7 +173,6 @@ promo <- lmer(role_seniority ~ (1|employee_id) + gender, data = promotions)
 #also if there is bias, then holding factors like productivity and leadership constant between both genders to our model should produce different results? because holding them constant would mean that for that role, any gender would be suited for the job because they have the same skill set, so gender shouldnt matter 
 #could may do a log reg? like calculate the likelihood of men getting promoted vs women? 
 #primary response is role_seniority? 
-promotions <- promotions %>% mutate("leadership_for_level" = factor(leadership_for_level, levels = c("Needs improvement", "Appropriate for level","Exceeds expectations"))) #changed to factor since we want to look at the levels of leadership on the promotions 
 
 
 ```
@@ -168,7 +192,7 @@ current_employees = current_employees %>% mutate(salary = str_remove_all(salary,
 #want to visualize mean salary for each financial quarter per gender - helpful table but idk how to visualize
 genderprop <- current_employees%>% group_by(gender,financial_q) %>% summarise(gendercount = n(), meansalary = mean(salary)) 
 
-salary_by_quarter_gender <- ggplot(genderprop, aes(x= financial_q, y = meansalary)) + geom_bar(aes(fill = gender), position = "dodge", stat = "identity", width = 0.7) + theme(axis.text.x = element_text(angle = 90)) #CHANGE COLOUR AND TITLES 
+salary_by_quarter_gender <- ggplot(genderprop, aes(x= financial_q, y = meansalary)) + geom_bar(aes(fill = gender), position = "dodge", stat = "identity", width = 0.7) + theme_minimal()+theme(axis.text.x = element_text(angle = 90)) #CHANGE COLOUR AND TITLES 
 salary_by_quarter_gender
 
 ```
