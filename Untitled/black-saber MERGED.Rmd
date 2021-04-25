@@ -19,6 +19,7 @@ titlepage-rule-height: 2
 ```{r, message = FALSE, echo=FALSE}
 #install.packages("knitr")
 #install.packages("kableExtra")
+#install.packages("gridExtra)
 library(tidyverse)
 library(knitr)
 library(kableExtra)
@@ -123,14 +124,14 @@ Since the second model is nested in the third, we can first compare these last t
 
 ```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 #compare the effect between gender only and gender (rand int) + random slope for team 
-kable(lmtest::lrtest(hiring1_gender_model, hiring1_team_gender), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Random Effect of Team in Phase 1")
+kable(signif(lmtest::lrtest(hiring1_gender_model, hiring1_team_gender),4), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Random Effect of Team in Phase 1")
 ```
 
 Since the base model is nested within the second linear model with a fixed effect for gender, the log likelihood test can be used again to compare them (Table 3). We find a large p-value again (0.6331) that shows that there is not a significant difference between the two models. This shows that the algorithm is not significantly biased towards gender in the first round, otherwise the random intercepts between these models would be different and the p-value value would be very small (<0.05). 
 
 ```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 #test the simple model against the original model with no random intercept for gender...investigate if there is a difference
-kable(lmtest::lrtest(hiring1_model, hiring1_gender_model), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Fixed Effect of Gender in Phase 1")
+kable(signif(lmtest::lrtest(hiring1_model, hiring1_gender_model),4), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Fixed Effect of Gender in Phase 1")
 #chi^2 p value small for both of them which means there's no difference in models if u add effect for gender, meaning model doesn't change based on gender and therefore there is no evidence of there being bias in phase 1 of the hiring process.
 ```
 
@@ -173,19 +174,19 @@ summary(hiring2_team_gender)
 
 ```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 #compare the effect between gender only and gender (rand int) + random slope for team 
-kable(lmtest::lrtest(hiring2_gender_model, hiring2_team_gender), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Random Effect of Team in Phase 2")
+kable(signif(lmtest::lrtest(hiring2_gender_model, hiring2_team_gender),4), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Random Effect of Team in Phase 2")
 #seems like not significant effect... we can continue with our simpler model without the difference between teams
 #test the simple model against the original model with no random intercept for gender and investigate if there is a difference
-kable(lmtest::lrtest(hiring2_model, hiring2_gender_model), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Fixed Effect of Gender in Phase 2")
+kable(signif(lmtest::lrtest(hiring2_model, hiring2_gender_model),4), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Fixed Effect of Gender in Phase 2")
 #high chi squared for both - we're good! no diff between model that seps gender 
 ```
 
 Moreover, if we look at the 95% confidence interval for the coefficients in the model with a fixed effect for gender (Table 7), we can see that 0 lies within the interval for women, and that the estimate for those that prefer not to specify is negative, and the upper bound for the estimate is positive, so we know that 0 also lies within this interval. Therefore, we can say that there is insufficient evidence that suggests gender is associated with moving onto the interview round from phase 2. 
 
 ```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
-p2confint = cbind(est = summary(
-hiring2_gender_model)$coef[,1],
-confint(hiring2_gender_model))
+p2confint = cbind(est = round(summary(
+hiring2_gender_model)$coef[,1],3),
+round(confint(hiring2_gender_model),3))
 rownames(p2confint) = c("Baseline", "Technical Skills", "Writing Skills", "Leadership Presence", "Speaking Skills", "Woman", "Prefer not to Say")
 kable(p2confint, col.names = c("Estimate", "2.5%", "97.5%"), caption = "95\\% Confidence Interval for GLM with Gender Effect")
 ```
@@ -241,28 +242,28 @@ finalmodel = glm(hired ~ avg_interview, family = binomial(link='logit'), data = 
 #summary(finalmodel)
 finalmodel2 = glm(hired ~ avg_interview + gender, family = binomial(link='logit'), data = round3_hired)
 #summary(finalmodel2)
-kable(lmtest::lrtest(finalmodel, finalmodel2), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Fixed Effect of Gender in Final Hires")
+kable(signif(lmtest::lrtest(finalmodel, finalmodel2),4), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Fixed Effect of Gender in Final Hires")
 ```
 
 ### Promotions 
-Our next task was to look into Black Saber's promotions. We were given data of all the current employees by financial quarter which included each employee's gender (man, woman or prefer not to say), the team they worked on (Client Services, Data, Design, Legal and Financial, Marketing and Sales, Operations, People and Talent and Software), role seniority (Entry-level, Junior I, Junior II, Senior I, Senior II, Senior III, Manager, Director, Vice president), leadership for their role (needs improvement, appropriate for level and exceeds expectations), productivity on a scale of 0 - 100 (with 100 being very productive) and lastly, the salary at the given financial quarter. \  
+Our next task was to look into Black Saber's promotions. We were given data of all the current employees by financial quarter which included each employee's gender (man, woman or prefer not to say), the team they worked on (Client Services, Data, Design, Legal and Financial, Marketing and Sales, Operations, People and Talent and Software), role seniority (Entry-level, Junior I, Junior II, Senior I, Senior II, Senior III, Manager, Director, Vice president), leadership for their role (needs improvement, appropriate for level and exceeds expectations), productivity on a scale of 0 - 100 (with 100 being very productive) and lastly, the salary in the given financial quarter. \  
 
-To wrangle the data and prepare it for analysis, we first factored and numerated role seniority as this is the only indication we have of someone being promoted. Entry-level, Junior I, Junior II, Senior I, Senior II, Senior III, Manager, Director and Vice president was coded as 1,2,3,4,5,6,7,8,9 respectively. This also allowed us to visualize the gender distribution by role for each financial quarter as a starting point. \
+To wrangle the data and prepare it for analysis, we first factored and numerated role seniority as this is the only indication we have of someone being promoted. Entry-level, Junior I, Junior II, Senior I, Senior II, Senior III, Manager, Director and Vice president was coded as 1,2,3,4,5,6,7,8,9 respectively. This also allowed us to visualize the gender distribution by role for each financial quarter as a starting point. \newline
 
 Disclaimer: Upon analysis we decided not to use data from years 2013 to 2015. Totaling the number of employees from each quarter resulted in 100 or less employees. With such a small pool of data per quarter, it would be difficult to apply any meaningful analysis. \ 
 
-```{r, ECHO = FALSE}
+```{r, ECHO = FALSE, message = FALSE, warning = FALSE}
 black_saber_current_employees <- read_csv("data/black-saber-current-employees.csv")
 roles = c("Entry-level", "Junior I", "Junior II", "Senior I", "Senior II", "Senior III", "Manager", "Director", "Vice president")
 smallyears = c("2013 Q2", "2013 Q3", "2013 Q4", "2014 Q1", "2014 Q2", "2014 Q3", "2014 Q4", "2015 Q1", "2015 Q2", "2015 Q3", "2015 Q4")
-totalemployees <- promotionsbyfinancialq %>% filter(financial_q %in% smallyears) %>% group_by(financial_q) %>% summarise(totals = n())
-
-sumemployees <- sum(totalemployees$totals)
-sumemployees
 
 promotionsbyfinancialq <- black_saber_current_employees %>% mutate("role_seniority" = factor(role_seniority, levels = roles)) %>% mutate("order" = as.numeric(role_seniority)/100) %>% filter(!(financial_q %in%smallyears))
 
 
+totalemployees <- promotionsbyfinancialq %>% filter(financial_q %in% smallyears) %>% group_by(financial_q) %>% summarise(totals = n())
+
+sumemployees <- sum(totalemployees$totals)
+sumemployees
 
 ggplot(data = promotionsbyfinancialq, aes(x = factor(order), fill = gender)) + 
   geom_bar(data = dplyr::filter(promotionsbyfinancialq, gender=="Woman")) + geom_bar(data = dplyr::filter(promotionsbyfinancialq, gender=="Prefer not to say")) +
@@ -275,15 +276,16 @@ ggplot(data = promotionsbyfinancialq, aes(x = factor(order), fill = gender)) +
   scale_fill_brewer(palette="Dark2") +
   facet_wrap(~financial_q) + 
   labs(caption = "Gender distribution for each role and financial quarter", x = "Number of people in each role", y = "Roles")
-ggsave("images/promotion_genderdist.png", width = 10, height = 20)
+ggsave("images/promotion_genderdist.png", width = 20, height = 10)
 ```
 
-![](images/promotion_genderdist.png)
+![Gender Distribution for Each Role in Financial Quarter](images/promotion_genderdist.png)
+
 Visually, we can see that as Black Saber expanded as a company and hired more people, there seems to be slightly more women in entry level roles than men. On the other hand, while we move into the more senior roles, there seems to be more men. This is something we want to consider and look out for in our analysis. Is this simply due to chance? Are men in these roles because they are on average more suited for them by looking into factors such as productivity and leadership/ Or does Black Saber have a bias towards promoting men. 
-Note: This plot was made referencing Robert Lanfear's blog post https://www.robertlanfear.com/blog/files/visualising_gender_balance_R.html.
+Note: This plot was made referencing Robert Lanfear's blog post (https://www.robertlanfear.com/blog/files/visualising_gender_balance_R.html).
 
 ## Quantifying and Modeling Promotions 
-To be able to model promotions, we created a column "promoted" in the data set to indicate whether a person has been promoted from their previous role or not. An employee is considered to be promoted if their role seniority is greater than the previous quarter (ie. In 2015 Q1, role_seniority = 2 < In 2015 Q2, role_seniority = 3). This change was indicated as a 1 if promoted, and 0 otherwise.
+To be able to model promotions, we created a "promoted" column in the data set to indicate whether a person has been promoted from their previous role or not. An employee is considered to be promoted if their role seniority is greater than the previous quarter (eg. In 2015 Q1, role seniority = 2 < In 2015 Q2, role seniority = 3). This change was indicated as a 1 if promoted, and 0 otherwise.
 ```{r,}
 #want to count the number of times a person has been promoted 
 library(lme4)
@@ -293,80 +295,85 @@ mutate(leadership_for_level = factor(leadership_for_level)) %>% mutate("leadersh
 
 ```
 
-```{r,}
+```{r}
 promotion_by_gender <- promotions %>% group_by(gender) %>% summarise(numberofpromos = n()) %>% mutate(prop = numberofpromos/sum(numberofpromos))
 
 df = cbind(promotion_by_gender, barcol)
 
-totalpromo <- ggplot(promotions, aes(x = promoted, fill = gender)) + geom_bar(position = "fill") #+ scale_fill_manual("Legend", values = c("Man" = "FFC300", "Woman" = "#C45DF0", "Prefer not to say" = "#A3F07C"))
-totalpromo +labs(caption = "Promotions By Gender Proportions", x = "Promoted", y = "Proportion of Each Gender")
-ggsave("images/promotion_genderprop.png", width = 10, height = 10) 
-#tells us that a larger proportion of men 
+totalpromo_int <- ggplot(promotions, aes(x = promoted, fill = gender)) + geom_bar(position = "fill") #+ scale_fill_manual("Legend", values = c("Man" = "FFC300", "Woman" = "#C45DF0", "Prefer not to say" = "#A3F07C"))
+totalpromo <- totalpromo_int + labs(caption = "Promotions By Gender Proportions", x = "Promoted", y = "Proportion of Each Gender")
+totalpromo
+#ggsave("images/promotion_genderprop.png", width = 10, height = 8) 
+
 #by team - important factor to consider
-teampromo <- totalpromo + facet_wrap(~team) #+ scale_fill_manual("Legend", values = c("Man" = "FFC300", "Woman" = "#C45DF0", "Prefer not to say" = "#A3F07C"))
+teampromo <- totalpromo + facet_wrap(~team, ncol = 4) #+ scale_fill_manual("Legend", values = c("Man" = "FFC300", "Woman" = "#C45DF0", "Prefer not to say" = "#A3F07C"))
 teampromo
-ggsave("images/teampromo.png", width = 10, height = 10)
+ggsave("images/teampromo.png", width = 10, height = 8)
+
 #however, there are a lot of things that can effect this such as team, leadership, productivity, role seniority etc 
+#tells us that a larger proportion of men 
 ```
-Now, we can visualize the proportion of men, women, and those who have preferred not to disclose their gender. The image below shows us that of the promotion of those promoted, men have be promoted the most.
-![](images/promotion_genderprop.png)
-Do these proportions change as we separate the different teams? As seen below, the only team where women seem to have more promotions is in People and Talent. While in the data team it seems to be pretty even. However, it is important to consider if these proportions are significant when considering all the other variables, such as leadership, productivity, as well. 
-![](images/teampromo.png)
-#Promotion Model 
+
+Now, we can visualize the proportion of men, women, and those who have preferred not to disclose their gender. The image below shows us that of the promotion of those promoted, men have be promoted the most (Figure 2).
+
+Do these proportions change as we separate the different teams? As seen below, the only team where women seem to have more promotions is in People and Talent. While in the data team it seems to be pretty even. However, it is important to consider if these proportions are significant when considering all the other variables, such as leadership, productivity, as well (Figure 3). 
+
+![Promotions By Gender Proportions](images/promotion_genderprop.png) ![Promotions by Gender Proportion within Teams](images/teampromo.png)
+
+#### Promotion Model 
+
 For our model, we used Generalized Linear Models with the variable promoted as the binary response variable.
 First, we started off with a model that predicted being promoted with gender as the only variable. This gave us a significant coefficient at the 0.001 level of -0.41 for woman. This can be interpreted as the odds a woman is promoted is 0.66 times less likely than men. For the subgroup, prefer not to say, the odds are also lower, however this value is not significant. \
 
-
-```{r,}
+```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 promomodel1 <- glm(promoted ~ gender, family = binomial(link = "logit"), data = promotions) 
-summary(promomodel1)
-info1 <- summary((promomodel1))$coefficients
+#summary(promomodel1)
+info1 <- round(summary((promomodel1))$coefficients, 3)
+rownames(info1) = c("Baseline", "Woman", "Prefer not to Say")
 #this tells us that for genders that are not male, you are exp(-0.41) = 0.66. This tells us that the odds of women being promoted is 0.66 times less likely than men (prefer not to say not significant)
 kable(info1, caption = "Model 1: Promotion and Gender Values") #col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Fixed Effect of Gender in Final Hires")
 ```
-But is something else effecting the promotions? We decided to investigate further and figure out if any of the other variables could explain our results better.\  
+But is something else effecting the promotions? We decided to investigate further and figure out if any of the other variables could explain our results better. First, we looked at adding the team they are in. Is there bias in only some teams? Table 10 shows the results from modeling promotions with gender AND teams. Again, we see that for women, the odds of being promoted remains at around 0.66 times less likely than male counter parts. 
 
-First, we looked at adding the team they are in. Is there bias in only some teams? \
-The table below shows the results from modeling promotions with gender AND teams. Again, we see that for women, the odds of being promoted remains at around 0.66 times less likely than male counter parts. \
-```{r, include = TRUE} 
+```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE} 
 #but what if we control for the team they are in 
 promomodel2 <- glm(promoted ~ gender + team, family = binomial(link = "logit"), data = promotions) 
-info2 <- summary(promomodel2)$coefficients #adding team as a coeff had no signicant change to the model 
-kable(info2, caption = "Model 2: Promotion with gender and team Values")
+info2 <- round(summary(promomodel2)$coefficients, 3) #adding team as a coeff had no signicant change to the model 
+rownames(info2) = c("Baseline", "Woman", "Prefer not to say", "Data", "Design", "Legal and Financial", "Marketing and Sales", "Operations", "People and Talent", "Software")
+kable(info2, caption = "Model 2: Promotion with Gender and Team Values")
 ```
-Then, we looked at whether a person's leadership affected their odds of being promoted after all, we would expect to see those with higher leadership skills be promoted.\ 
 
-```{r, include=TRUE}
+Then, we looked at whether a person's leadership affected their odds of being promoted after all (Table 11); we would expect to see those with higher leadership skills be promoted. Even with leadership being added as a variable, we do not see a change in the gender promotions, nor does it seem significant to include in our model.
+```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 #what about accounting for leadership? 
 promomodel3 <- glm(promoted ~ gender + leadership_for_level, family = binomial(link = "logit"), data = promotions) 
-info3 <- summary(promomodel3)$coefficients
-kable(info3, caption = "Model 3: Promotion with gender and leadership Values")#also no significant change, gender is still a significant factor in being promoted
+info3 <- round(summary(promomodel3)$coefficients,3)
+rownames(info3) = c("Baseline", "Woman", "Prefer not to say", "Leadership Appropriate for Level", "Leadership Exceeds Expectations")
+kable(info3, caption = "Model 3: Promotion with Gender and Leadership Values")#also no significant change, gender is still a significant factor in being promoted
 ```
-Even with leadership being added as a variable, we do not see a change in the gender promotions, nor does it seem significant to include in our model. \
 
 Does productivity explain this relationship we see? 
-```{r, include=TRUE}
+```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 #what about productivity?
 productivity = promotions %>% mutate(productivity = ifelse(productivity == 50, "Satisfactory", (ifelse(productivity > 50, "Better than expected", "Unproductive")))) %>% mutate(productivity = factor(productivity, levels = c("Unproductive", "Satisfactory", "Better than expected")))
 
 promomodel4 <- glm(promoted ~ gender + productivity, family = binomial(link = "logit"), data = promotions) 
-info4 <- summary(promomodel4)$coefficients
-kable(info4, caption = "Model 4: Promotion with gender and productivity values") #productivity is significant but it does not change the the difference we see in women being promoted 
-
+info4 <- round(summary(promomodel4)$coefficients,3)
+rownames(info4) = c("Baseline", "Woman", "Prefer not to say", "Productivity")
+kable(info4, caption = "Model 4: Promotion with Gender and Productivity Values") #productivity is significant but it does not change the the difference we see in women being promoted 
 ```
 We found that productivity, specifically, whether someone was more productive than expected, lowered their odds of being promoted, which was an interesting find. However, it still did not change the relationship with women and promotions by very much. That is we still find that women are less likely to be promoted. \
-
-Finally, we explored the relationship of role seniority with promotions since on the surface, role seniority has an ambiguous relationship with being promoted. On one side, role seniority could be an indication of productivity and leadership levels and affect promotions positively. But on the other hand, the expectations and skills required to be promoted in the higher roles, may make it more difficult to be promoted (there are also less spots, i.e. entry level roles vs vice-president). \ 
-
-```{r, include=TRUE}
+Finally, we explored the relationship of role seniority with promotions since on the surface, role seniority has an ambiguous relationship with being promoted (Table 13). On one side, role seniority could be an indication of productivity and leadership levels and affect promotions positively. But on the other hand, the expectations and skills required to be promoted in the higher roles, may make it more difficult to be promoted (there are also less spots, eg. entry level roles vs vice-president). \ 
+```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 #what about role seniority? more role seniority could increase your chances of being promoted but at the same time in very high levels there are less spots 
 promomodel5 <- glm(promoted ~ gender + productivity + role_seniority, family = binomial(link = "logit"), data = promotions) 
-info5 <- summary(promomodel5)$coefficients
-kable(info5, caption = "Model 5: Promotion with gender, productivity and role seniority")   
+info5 <- round(summary(promomodel5)$coefficients, 3)
+rownames(info5) = c("Baseline", "Woman", "Prefer not to say", "Productivity", "Role Seniority")
+kable(info5, caption = "Model 5: Promotion with Gender, Productivity and Role Seniority")
 ```
-Our analysis tells us that role seniority is an important variable in our model. Specifically, as role seniority increases, we expected the odds of being promoted to increase as well (by about 1.14 times more likely). However, although it does reduce the effect we see on women being promoted, it does not change it by much. The odds of women being promoted is still around 30% less than men. \
 
-Using Model 5 as our final model, we see that this relationship between gender, women specifically, is significant to the 1%. Even when accounting for significant variables such as productivity and role seniority, we found that the odds of women at Black Saber being promoted was about exp(-0.38) = 0.68 or about 40% less likely to be promoted. 
+Our analysis tells us that role seniority is an important variable in our model. Specifically, as role seniority increases, we expected the odds of being promoted to increase as well (by about 1.14 times more likely). However, although it does reduce the effect we see on women being promoted, it does not change it by much. The odds of women being promoted is still around 30% less than men. \
+Using Model 5 (Table 14) as our final model, we see that this relationship between gender, women specifically, is significant to the 1%. Even when accounting for significant variables such as productivity and role seniority, we found that the odds of women at Black Saber being promoted was about exp(-0.38) = 0.68 or about 40% less likely to be promoted. 
 
 ## Salary
 
@@ -394,12 +401,12 @@ salary_by_quarter_gender
 # 2) leadership for level.... 
 # 3) should we look at the average amount of time someone stays in thecompany depending on gender? that would just be the average amount of times their ID shows up
 #average retention rate!
-m_retention = count(current_males, employee_id)
-mean(m_retention$n/4)
-f_retention = count(current_females, employee_id)
-mean(f_retention$n/4)
-o_retention = count(current_other, employee_id)
-mean(o_retention$n/4)
+#m_retention = count(current_males, employee_id)
+#mean(m_retention$n/4)
+#f_retention = count(current_females, employee_id)
+#mean(f_retention$n/4)
+#o_retention = count(current_other, employee_id)
+#mean(o_retention$n/4)
 # how do we compare these to see if they're significant ?
 ```
 
@@ -463,7 +470,7 @@ summary(final_sal_model)
 ```
 Through creating various models to test different fixed and random effects in our data, we found that gender is a significant fixed effect in our model (when controlling for other variables that may contribute to salary). That is we saw that gender does in fact impact the expected salary we can expect to see from an employee. 
 
-More specifically, we can expect to see women and those who have indicated "prefer not to say" under gender making approximately \[$2248.2\] and \[$1104.1\] less respectively than their male counterparts.  
+More specifically, we can expect to see women and those who have indicated "prefer not to say" under gender making approximately $\$2248.2$ and $\$1104.1$less respectively than their male counterparts.  
 
 ## Discussion
 
@@ -505,4 +512,3 @@ Not only is The Hive passionate about making actionable insights, but we also pr
 * Only using methods we have sufficient knowledge in to use in order to prevent any misinterpretation and summary of the data
 * Only using data that is provided to us directly by Black Saber Software, and not to scrape other data that we do not have permission to access
 * Declaring our relationship with the clients (ie. financial or other interests) to maintain transparency regarding the influence it may have on the outcomes 
-
