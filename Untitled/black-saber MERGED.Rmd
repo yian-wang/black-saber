@@ -245,11 +245,11 @@ kable(lmtest::lrtest(finalmodel, finalmodel2), col.names = c("# Df", "Log Likeli
 ```
 
 ### Promotions 
-Our next task was to look into Black Saber's promotions. We were given data of all the current employees by financial quarter which included each employee's gender (man, woman or prefer not to say), the team they worked on (Client Services, Data, Design, Legal and Financial, Marketing and Sales, Operations, People and Talent and Software), role seniority (Entry-level, Junior I, Junior II, Senior I, Senior II, Senior III, Manager, Director, Vice president), leadership for their role (needs improvement, appropriate for level and exceeds expectations), productivity on a scale of 0 - 100 (with 100 being very productive) and lastly, the salary at the given financial quarter. 
+Our next task was to look into Black Saber's promotions. We were given data of all the current employees by financial quarter which included each employee's gender (man, woman or prefer not to say), the team they worked on (Client Services, Data, Design, Legal and Financial, Marketing and Sales, Operations, People and Talent and Software), role seniority (Entry-level, Junior I, Junior II, Senior I, Senior II, Senior III, Manager, Director, Vice president), leadership for their role (needs improvement, appropriate for level and exceeds expectations), productivity on a scale of 0 - 100 (with 100 being very productive) and lastly, the salary at the given financial quarter. \  
 
-To wrangle the data and prepare it for analysis, we first factored and numerated role seniority as this is the only indication we have of someone being promoted. Entry-level, Junior I, Junior II, Senior I, Senior II, Senior III, Manager, Director and Vice president was coded as 1,2,3,4,5,6,7,8,9 respectively. This also allowed us to visualize the gender distribution by role for each financial quarter as a starting point. 
+To wrangle the data and prepare it for analysis, we first factored and numerated role seniority as this is the only indication we have of someone being promoted. Entry-level, Junior I, Junior II, Senior I, Senior II, Senior III, Manager, Director and Vice president was coded as 1,2,3,4,5,6,7,8,9 respectively. This also allowed us to visualize the gender distribution by role for each financial quarter as a starting point. \
 
-Disclaimer: Upon analysis we decided not to use data from years 2013 to 2015. Totaling the number of employees from each quarter resulted in 100 or less employees. With such a small pool of data per quarter, it would be difficult to apply any meaningful analysis. 
+Disclaimer: Upon analysis we decided not to use data from years 2013 to 2015. Totaling the number of employees from each quarter resulted in 100 or less employees. With such a small pool of data per quarter, it would be difficult to apply any meaningful analysis. \ 
 
 ```{r, ECHO = FALSE}
 black_saber_current_employees <- read_csv("data/black-saber-current-employees.csv")
@@ -314,36 +314,52 @@ Do these proportions change as we separate the different teams? As seen below, t
 ![](images/teampromo.png)
 #Promotion Model 
 For our model, we used Generalized Linear Models with the variable promoted as the binary response variable.
-First, we started off with a model that predicted being promoted with gender as the only variable. This gave us a significant coefficient at the 0.001 level of -0.41 for woman. This can be interpreted as the odds a woman is promoted is 0.66 times less likely than men. For the subgroup, prefer not to say, the odds are also lower, however this value is not significant. But, we decided to investigate further and figure out if any of the other variables could explain our results better.  
+First, we started off with a model that predicted being promoted with gender as the only variable. This gave us a significant coefficient at the 0.001 level of -0.41 for woman. This can be interpreted as the odds a woman is promoted is 0.66 times less likely than men. For the subgroup, prefer not to say, the odds are also lower, however this value is not significant. \
+
+
 ```{r,}
 promomodel1 <- glm(promoted ~ gender, family = binomial(link = "logit"), data = promotions) 
 summary(promomodel1)
 info1 <- summary((promomodel1))$coefficients
 #this tells us that for genders that are not male, you are exp(-0.41) = 0.66. This tells us that the odds of women being promoted is 0.66 times less likely than men (prefer not to say not significant)
-kable(info1, caption = "Model 1 Values") #col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Fixed Effect of Gender in Final Hires")
+kable(info1, caption = "Model 1: Promotion and Gender Values") #col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Fixed Effect of Gender in Final Hires")
 ```
-First, we looked at adding the team they are in. 
+But is something else effecting the promotions? We decided to investigate further and figure out if any of the other variables could explain our results better.\  
+
+First, we looked at adding the team they are in. Is there bias in only some teams? \
+The table below shows the results from modeling promotions with gender AND teams. Again, we see that for women, the odds of being promoted remains at around 0.66 times less likely than male counter parts. \
 ```{r, include = TRUE} 
 #but what if we control for the team they are in 
 promomodel2 <- glm(promoted ~ gender + team, family = binomial(link = "logit"), data = promotions) 
-info2 <- summary(promomodel2) #adding team as a coeff had no signicant change to the model 
-kable(info2, caption = "Model 12 Values")
+info2 <- summary(promomodel2)$coefficients #adding team as a coeff had no signicant change to the model 
+kable(info2, caption = "Model 2: Promotion with gender and team Values")
 ```
-Then, we looked at whether a person's leadership affected their odds of being promoted. 
+Then, we looked at whether a person's leadership affected their odds of being promoted after all, we would expect to see those with higher leadership skills be promoted.\ 
+
 ```{r, include=TRUE}
 #what about accounting for leadership? 
 promomodel3 <- glm(promoted ~ gender + leadership_for_level, family = binomial(link = "logit"), data = promotions) 
-summary(promomodel3) #also no significant change, gender is still a significant factor in being promoted
+info3 <- summary(promomodel3)$coefficients
+kable(info3, caption = "Model 3: Promotion with gender and leadership Values")#also no significant change, gender is still a significant factor in being promoted
+```
+Even with leadership being added as a variable, we do not see a change in the gender promotions, nor does it seem significant to include in our model. \
 
-#what about productivity? 
-promomodel4 <- glm(promoted ~ gender + productivity, family = binomial(link = "logit"), data = promotions) 
-summary(promomodel4) #productivity is significant but it does not change the the difference we see in women being promoted 
+Does productivity explain this relationship we see? 
+```{r, include=TRUE}
+#what about productivity?
+productivity = promotions %>% mutate(productivity = ifelse(productivity == 50, "Satisfactory", (ifelse(productivity > 50, "Better than expected", "Unproductive")))) %>% mutate(productivity = factor(productivity, levels = c("Unproductive", "Satisfactory", "Better than expected")))
+promomodel4 <- glm(promoted ~ gender + productivity, family = binomial(link = "logit"), data = productivity) 
+info4 <- summary(promomodel4)$coefficients
+kable(info4, caption = "Model 4: Promotion with gender and productivity values") #productivity is significant but it does not change the the difference we see in women being promoted 
 
 #what if productivity was binary? 
-
+```
+We found that productivity, specifically, whether someone was more productive than expected, lowered their odds of being promoted, which was an interesting find. However, it still did not change the relationship with women and promotions by very much. That is we still find that women are less likely to be promoted. 
+```{r, include=TRUE}
 #what about role seniority? more role seniority could increase your chances of being promoted but at the same time in very high levels there are less spots 
 promomodel5 <- glm(promoted ~ gender + productivity + role_seniority, family = binomial(link = "logit"), data = promotions) 
-summary(promomodel5) #significant exp(0.133) = 1.15 times more likely to be promoted as your seniority goes up but gender is significant 
+info5 <- summary(promomodel5)$coefficients
+kable(info5, caption = "Model 5: Promotion with gender, productivity and role seniority")   
 ```
 
 ## Salary
