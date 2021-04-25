@@ -17,7 +17,11 @@ titlepage-rule-height: 2
 ---
 
 ```{r, message = FALSE, echo=FALSE}
+#install.packages("knitr")
+#install.packages("kableExtra")
 library(tidyverse)
+library(knitr)
+library(kableExtra)
 # this should suppress all code and messages
 knitr::opts_chunk$set(include=FALSE)
 ```
@@ -53,18 +57,21 @@ _This part of the report is much more comprehensive than the executive summary. 
 
 ## Introduction
 
-
-
-
-_Provide a brief introduction to your report and outline what the report will cover. This section is valuable for setting scope and expectations. _
 ### Background
+A critical area of concern in today's workplace is gender bias, and Black Saber Software’s culture is no exception. It is critical that a company shows that their workplace practices are not only unbiased, but also that they embrace diversity. As a result, we have been hired as an external, third-party consultancy to review Black Saber Software’s hiring and promotion processes, as well as their employee salaries in order to determine whether or not the company is biased in their practices. We conclude that there is (in)sufficient evidence to suggest that Black Saber Software (is/is not) biased in their hiring and remuneration processes and that further action to solve this potential problem (is/is not) required. (Our suggestions follow if there is bias)
 
 ### Research questions
 _Use bullet points to to describe the research questions you are going to address. Write in full sentences._
-Hiring
-Promotion
+* Hiring
+* Promotion
+* Salary
 
-## Hiring Process
+## Methods
+
+### Hiring Process
+Black Saber's current new graduate hiring process proceeds in 3 stages, the first two of which are assessed by an artificial intelligence algorithm. It is not until the third and final round that a human becomes involved in the recruitment process. At the beginning of the process, each applicant is assigned a unique ID number that follows them throughout the process to help anonymize the data, as well as keep track of their progress. The applicants specify their gender (male, female, prefer not to say), and the team they wish to apply to (data or software). They then have the option of uploading a cover letter, resume, their GPA (scale from 0.0 to 4.0), extracurricular activities, and work experience. In phase 1, the algorithm rates each applicant’s level of extracurriculars and work experience (0, 1, or 2; 2 being the best). These in conjunction with their GPA and the presence of a cover letter and resume are used to decide which applicant moves onto phase 2. Phase 2 consists of a technical task, writing sample, and re-recorded video. 
+
+The algorithm uses these materials to rate each applicant's technical skills (0-100), writing skills (0-100), speaking skills (1-10), and leadership presence (1-10). These scores determine who moves onto the final phase, the only one that has human involvement on the company’s side. Phase 3 is an interview with 2 interviewers, who each score the applicant on how fit they are for the job on a scale from 0 to 100. We will use this information to investigate whether or not there is gender bias in the rating system both in the algorithm, but also in the interviewers.
 
 ```{r, include = FALSE}
 library(tidyverse)
@@ -80,6 +87,9 @@ phase3 = read_csv("data/phase3-new-grad-applicants-2020.csv")
 final_hires = read_csv("data/final-hires-newgrad_2020.csv")
 ```
 
+### Phase 1
+To wrangle the data, we added a column that specified whether or not an applicant moved onto the next round (denoted 0 and 1 for no and yes, respectively). This was done by first checking if there were any missing values in the dataset, which there were not. Then, we (fully) joined the phase 1 and phase 2 datasets, and noting which applicants had a value for "technical skills" in a new "next round" column. This is because technical skills were rated in phase 2; thus, if an applicant did not have a technical skill rating, then they did not make it to the next round. This could be done because it was confirmed prior that there were no other missing values in the dataset. We marked a 0 for applicants who did not have a technical skill rating and 1 for those who did. Then, we kept only the columns that were rated in phase 1, along with the new "next round" column. 
+
 ```{r}
 #checking to see if datasets have NAs to see (1) if we need to do anything about them (2) so we can filter them out in the next round when we're seeing who got into the next round
 sum(is.na(phase1))
@@ -87,151 +97,98 @@ sum(is.na(phase2))
 sum(is.na(phase3))
 ```
 
-### Round 1
 ```{r}
 round1_2 = full_join(phase1, phase2)
 round1_2 = round1_2 %>% 
   #technical skills is only under hiring2, which means if an applicant's id has NA for this column, they did not move onto the next round
   mutate(next_round = !is.na(technical_skills)) %>%  
   mutate(next_round = as.integer(next_round)) %>% 
+  mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2)) %>% 
   select(-c(technical_skills, writing_skills, leadership_presence, speaking_skills)) #remove phase 2 data
 
 #split into software/data
-round1_data = round1_2 %>% 
-  filter(team_applied_for == "Data") %>% 
-  mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2))
+#round1_data = round1_2 %>% 
+  #filter(team_applied_for == "Data")
 
-round1_software = round1_2 %>% 
-  filter(team_applied_for == "Software") %>% 
-  mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2))
+#round1_software = round1_2 %>% 
+  #filter(team_applied_for == "Software")
 ```
 
-``` {r}
-#see m/f/other demographics within each data/software applicant pool
-# visualizations
-
-r1_data_gender_plot = round1_data %>% 
-  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF", "#C4E48A")) +
-  #geom_histogram(colour = "grey", fill = "#6C3082") +
-  theme_minimal() +
-  labs(title = "Data Applicant Gender Breakdown (Round 1)", x = "Gender", y = "Number of Applicants") 
-#do we want a title or a caption for this?
-r1_data_gender_plot
-ggsave("images/r1_data_gender_plot.png", width = 7, height = 4)
-
-r1_software_gender_plot = round1_software %>% 
-  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF", "#C4E48A")) +
-  #geom_histogram(colour = "grey", fill = "#6C3082") +
-  theme_minimal() +
-  labs(title = "Software Applicant Gender Breakdown (Round 1)", x = "Gender", y = "Number of Applicants")
-r1_software_gender_plot
-#do we want a title or a caption for this?
-ggsave("images/r1_software_gender_plot.png", width = 7, height = 4)
+```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+# counts for total round 1 gender
+kable(table(round1_2$gender), col.names = c("Gender", "Quantity"), caption = "Gender Count for Phase 1")
 ```
-![](images/r1_data_gender_plot.png)
-![](images/r1_software_gender_plot.png)
+
+We then compare the number of applicants that identify as either male, female, or preferred not to specify (Table 1). We see that the applicant pool seems to be fairly even between 311 women and 291 men; with a smaller portion of 11 applicants who preferred not to specify. The even distribution between women and men is a good basis to investigate whether or not there is gender bias in the AI algorithm that determines who moves onto the next round. We investigate this effect with generalized linear models and generalized linear mixed models, with the response variable being a binary response of whether or not the applicant moved onto the next round. \newline
+Since the algorithm considers each factor (ie. existence of cover letter, resume, level of GPA, work experience, and extracurriculars), these will be the fixed effects in the base generalized linear model. \newline
 
 ```{r}
-#get counts for each gender in data -> for report
-table(round1_data$gender)
-#get counts for each gender in software -> for report
-table(round1_software$gender)
-```
-
-<!-- by the looks of it the applicant pool is pretty even but lets go forward with investigating in case -->
-
-```{r}
-
-#response is binary so we use glm bc family
+#response is binary so we use glm so we can use family = binomial
 
 #normal linear model
-hiring1_model = glm(next_round ~ cv + gpa + cover_letter, family = binomial(link = "logit"), data = round1_2)
-summary(hiring1_model)
+hiring1_model = glm(next_round ~ cv + gpa + cover_letter + extracurriculars + work_experience, family = binomial(link = "logit"), data = round1_2)
+```
 
+Next, we created models with a fixed effect for gender. This second model is the same as the base linear model, but with an additional fixed effect of gender. The third model is a generalized linear mixed model, and adds an additional random effect for the team that the applicant applied for. We want to see if this potential bias exists in one, or both of the teams. \newline
+
+```{r}
 # add fixed effect for gender
-hiring1_gender_model = glm(next_round ~ cv + gpa + cover_letter + gender,#(1 | gender),#(1 + genre | artist_name), 
-                data = round1_2, family = binomial(link = "logit"))
+hiring1_gender_model = glm(next_round ~ cv + gpa + cover_letter + extracurriculars + work_experience + gender, data = round1_2, family = binomial(link = "logit"))
 summary(hiring1_gender_model)
 
 #let's see if we add an effect for team applied to - maybe the process for data and software are different?
-hiring1_team_gender = glmer(next_round ~ cv + gpa + cover_letter + gender + (1 |team_applied_for),
+hiring1_team_gender = glmer(next_round ~ cv + gpa + cover_letter + extracurriculars + work_experience + gender + (1 |team_applied_for),
                 data = round1_2, family = binomial(link = "logit"), nAGQ=0)
 
 summary(hiring1_team_gender)
-
-#compare the effect between gender only and gender (rand int) + random slope for team 
-lmtest::lrtest(hiring1_gender_model, hiring1_team_gender)
-#hmm seems like not significant effect... we can continue with our simpler model
-#test the simple model against the original model with no random intercept for gender...investigate if there is a difference
-lmtest::lrtest(hiring1_model, hiring1_gender_model)
-
-#chi^2 p value small for both of them which means theres no difference in models if u add effect for gender, meaning model doesnt change based on gender and therefore there is no evidence of there being bias in phase 1 of the hiring process.
-
-
 ```
 
-<!-- these models are confirmed by the fact that in round 2, the gender breakdown is pretty even  -->
+Since the second model is nested in the third, we can first compare these last two models with a log likelihood test to see if there is a significant difference between the model that includes the teams, and the one that does not (Table 2). Since the p-value value is large and close to 1 (0.9997), we conclude that there is not a statistically significant difference that the algorithm is biased towards a certain team. Thus, we can use the simpler model to compare to our base linear model that does not include gender as a fixed effect. \newline
 
-### Round 2
+```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+#compare the effect between gender only and gender (rand int) + random slope for team 
+kable(lmtest::lrtest(hiring1_gender_model, hiring1_team_gender), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Random Effect of Team in Phase 1")
+```
+
+Since the base model is nested within the second linear model with a fixed effect for gender, the log likelihood test can be used again to compare them (Table 3). We find a large p-value again (0.6331) that shows that there is not a significant difference between the two models. This shows that the algorithm is not significantly biased towards gender in the first round, otherwise the random intercepts between these models would be different and the p-value value would be very small (<0.05). 
+
+```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+#test the simple model against the original model with no random intercept for gender...investigate if there is a difference
+
+kable(lmtest::lrtest(hiring1_model, hiring1_gender_model), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Fixed Effect of Gender in Phase 1")
+#chi^2 p value small for both of them which means there's no difference in models if u add effect for gender, meaning model doesn't change based on gender and therefore there is no evidence of there being bias in phase 1 of the hiring process.
+```
+
+### Phase 2
+We wrangled the data in phase 2 similarly to how we did in phase 1. We fully joined the phase 2 and phase 3 datasets, and added a column denoting which applicants had an interviewer rating, which is how we determined who moved onto the third round. We denoted "moved forward to the next round" a 1, and "did not move forward" as 0. Again, if the applicant did not have an interviewer rating, it meant that they did not move forward in the process since we confirmed in the beginning that there were no missing values prior to the wrangling process.
+
 ```{r}
 round2_3 = full_join(phase2, phase3)
 #remove phase 2 columns
 round2_3 = round2_3 %>% 
-  #technical skills is only under hiring2, which means if an applicant's id has NA for this column, they did not move onto the next round
+  #interviewer rating only in phase 3, which means if an applicant's id has NA for this column, they did not move onto the next round
   mutate(next_round = !is.na(interviewer_rating_1)) %>%  
   mutate(next_round = as.integer(next_round)) %>% 
+  mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2)) %>% 
   select(-c(cover_letter, cv, gpa, extracurriculars, work_experience, interviewer_rating_1, interviewer_rating_2)) #remove phase 2 data
-
-#split into software/data
-round2_data = round2_3 %>% 
-  filter(team_applied_for == "Data") %>% 
-  mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2))
-
-round2_software = round2_3 %>% 
-  filter(team_applied_for == "Software") %>% 
-  mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2))
 ```
 
-``` {r}
-#see m/f/other demographics within each data/software applicant pool
-# visualizations
+```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+#get counts for each gender in round 2
 
-r2_data_gender_plot = round2_data %>% 
-  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF", "#C4E48A")) +
-  #geom_histogram(colour = "grey", fill = "#6C3082") +
-  theme_minimal() +
-  labs(title = "Data Applicant Gender Breakdown (Round 2)", x = "Gender", y = "Number of Applicants") 
-#do we want a title or a caption for this?
-r2_data_gender_plot
-ggsave("images/r2_data_gender_plot.png", width = 7, height = 4)
-
-r2_software_gender_plot = round2_software %>% 
-  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF", "#C4E48A")) +
-  #geom_histogram(colour = "grey", fill = "#6C3082") +
-  theme_minimal() +
-  labs(title = "Software Applicant Gender Breakdown (Round 2)", x = "Gender", y = "Number of Applicants")
-r2_software_gender_plot
-#do we want a title or a caption for this?
-ggsave("images/r2_software_gender_plot.png", width = 7, height = 4)
-
-# we should only visualize this without the diff teams... 
+kable(table(round2_3$gender), col.names = c("Gender", "Quantity"), caption = "Gender Count for Phase 2")
 ```
-![](images/r2_data_gender_plot.png)
-![](images/r2_data_gender_plot.png)
-```{r}
-#get counts for each gender in data -> for report
-table(round2_data$gender)
-#get counts for each gender in software -> for report
-table(round2_software$gender)
-# get percentages
-```
+
+We can see that in Table 4, the split between men and women is still fairly even, and there is a similar ratio of people in each gender category removed by the algorithm. This makes sense from our last statement that the algorithm as not biased in phase 1. \newline
+Then, we want to investigate whether or not there exists gender bias in this phase. Since the algorithm necessarily considers technical skills, writing skills, leadership presence, and speaking skills, these will be the factors in our base generalized linear model. \newline
+Next, we created a second and third model with a fixed effect for gender. The second model is the baseline model, with an additional fixed effect for gender. The third model is the same as the second model, but with a random effect for the team each applicant applied for. First, let's compare the second and third model to see if the algorithm is more biased for one team than the other (Table 5). We test this with a log-likelihood test, since the second model is nested within the third. We see that the p-value is 0.5372, which is insignificant at the 5% level, signifying that there is not a significant difference between the model with the random effect for team and the one without it. Therefore, we can move forward with our comparison using the similar model without the random effect. \newline
+Next, we compare this simpler model with a random effect for gender with its nested generalized linear model without this effect using a log-likelihood test (Table 6). We see that the p-value is 0.4099, meaning it is insignificant at the 5% level. Thus, we can see that there is not a statistically significant difference between the model accounting for gender and the one that doesn't. Thus, we can say that there is insufficient evidence to suggest that the algorithm is biased in Phase 2 of the hiring process. 
 
 ```{r}
 
 #normal linear model
 hiring2_model = glm(next_round ~ technical_skills + writing_skills + leadership_presence + speaking_skills, family = binomial(link = "logit"), data = round2_3)
 summary(hiring2_model)
-
 
 # add fixed effect for gender
 hiring2_gender_model = glm(next_round ~ technical_skills + writing_skills + leadership_presence + speaking_skills + gender, data = round2_3, family = binomial(link = "logit"))
@@ -243,52 +200,36 @@ hiring2_team_gender = glmer(next_round ~ technical_skills + writing_skills + lea
                 data = round2_3, family = binomial(link = "logit"), nAGQ=0)
 
 summary(hiring2_team_gender)
+```
 
-
+```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 #compare the effect between gender only and gender (rand int) + random slope for team 
-lmtest::lrtest(hiring2_gender_model, hiring2_team_gender)
+kable(lmtest::lrtest(hiring2_gender_model, hiring2_team_gender), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Random Effect of Team in Phase 2")
+
 #hmm seems like not significant effect... we can continue with our simpler model without the difference between teams
 #test the simple model against the original model with no random intercept for gender...investigate if there is a difference
+kable(lmtest::lrtest(hiring2_model, hiring2_gender_model), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Fixed Effect of Gender in Phase 2")
 
-lmtest::lrtest(hiring2_model, hiring2_gender_model)
 #since all these models are nested we can use lmtest to compare them... 
 #confint()
 
 #high chi squared for both - we're good! no diff between model that seps gender 
 ```
 
-```{r, warning=FALSE, message=FALSE}
-coef(hiring2_gender_model)
+Moreover, if we look at the 95% confidence interval for the coefficients in the model with a fixed effect for gender (Table 7), we can see that 0 lies within the interval for women, and that the estimate for those that prefer not to specify is negative, and the upper bound for the estimate is positive, so we know that 0 also lies within this interval. Therefore, we can say that there is insufficient evidence that suggests gender is associated with moving onto the interview round from phase 2. 
 
-exp(coef(hiring2_gender_model)) #?
-confint(hiring2_gender_model)
-```
-
-holding everything else constant, the odds of a female getting hired is 5.674635e-01 compared to odds of men and odds of "PNTS" is 9.287746e-08 compared to odds of men (?)
-
-anywayyyy 
-looking at the 95% confidence interval, we can see that 0 lies within the interval for women - thus we can say that there is insufficient evidence to suggest that gender is associated with getting hired. 
-
-```{r, warning=FALSE, message=FALSE}
-par_table = cbind(est = summary(
+```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+p2confint = cbind(est = summary(
 hiring2_gender_model)$coef[,1],
 confint(hiring2_gender_model))
-rownames(par_table)[1]= "Baseline"
-par_table
-```
-```{r}
-#centering - idk if i should/need to do this - idts
-quantile(round2_3$technical_skills)
-quantile(round2_3$writing_skills)
-quantile(round2_3$leadership_presence)
-quantile(round2_3$speaking_skills)
-
-#exp(par_table[1,'est'])/(1+exp(par_table[1,'est'])) 
+rownames(p2confint) = c("Baseline", "Technical Skills", "Writing Skills", "Leadership Presence", "Speaking Skills", "Woman", "Prefer not to Say")
+kable(p2confint, col.names = c("Estimate", "2.5%", "97.5%"), caption = "95\\% Confidence Interval for GLM with Gender Effect")
 ```
 
-
-### Round 3
-```{r}
+### Phase 3 and Final Hires
+In phase 3, we wrangled it similarly to Phases 1 and 2 and created a new binary column, but instead of a new column indicating if the applicant moved onto the next round, it indicated whether or not the person was hired. First, we had to create two intermediate datasets. Let's call them intermediate dataset 1 and 2 respectively. By right joining the phase 2 and phase 3 datasets respectively, we were able to see the variables critical to our analysis (such as gender and team applied for) from phase 2 on only the applicants that made it to phase 3. Then, we remove the columns we don't need to analyse phase 3: the scores the algorithm gave each applicant in phase 2. Thus, we get a dataset with each applicant's ID, gender, team, and both interviewer ratings - intermediate dataset 1. \newline
+Then, by fully joining intermediate dataset 1 with the IDs of the final hires, we were able to get a dataset with all the variables from intermediate dataset 1 but for only the applicants that got hired. Then, by adding a column of all 1's, indicating that these applicants were hired, we get intermediate dataset 2. By fully joining the two intermediate datasets, and changing the missing values in the hired column (for those that were not hired) to 0's, we get a dataset that can be used for analysis. For the purpose of this analysis specifically, however, we know that both the interview scores are taken into consideration when hiring an applicant. We noticed that the 10 applicants with the highest average score were hired, so we consolidated the two scores into one column for the average of the two scores to run our analysis.
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 #combined stats of ppl that applied in round 3
 round3_combined = right_join(phase2, phase3)
 round3_combined = round3_combined %>% 
@@ -302,33 +243,11 @@ round3_h_int = round3_h_int %>%
 round3_hired = full_join(round3_combined, round3_h_int)
 #remove phase 2 columns
 round3_hired = round3_hired %>% 
-  #technical skills is only under hiring2, which means if an applicant's id has NA for this column, they did not move onto the next round
   mutate_if(is.numeric, replace_na, replace = 0) %>% 
   mutate(avg_interview = (interviewer_rating_1 + interviewer_rating_2)/2) # we see that those with the highest avg score get hired so i'm going to consolidate them 
 ```
 
-```{r}
-model = glm(hired ~ avg_interview, family = binomial(link='logit'), data = round3_hired)
-summary(model)
-
-model2 = glm(hired ~ avg_interview + gender, family = binomial(link='logit'), data = round3_hired)
-summary(model2)
-
-#only one woman for each team was hired, let's just assume that we do not need to take into account the team applied for since the ratio is pretty even
-
-#model = glmer(hired ~ interviewer_rating_1 + interviewer_rating_2 + gender + (1|team_applied_for), family = binomial(link='logit'), data = round3_hired)
-#summary(model)
-
-lmtest::lrtest(model, model2)
-```
-
-not signif at the 5% level... it is at the 10% level tho so let's investigate whether or not the interviewers (human part) is biased...
-we probably see a discrepency because of the systematic barriers women face in other professional spheres - the people interviewing though should be careful... let's look at the % of women removed from this level vs not...
-
-```{r}
-#todo
-```
-
+We see that there was only 1 woman hired for each team (Table 8). From this we can say two things: (1) The number of women hired is fairly even, so we don't need to create and test a model with a random effect for team; especially since the sample size is so small, it will be hard to make good statistical inferences even with the model. (2) Even though more women applied and made it through the unbiased algorithm twice, only 2 out of the 20 final hired applicants were women. We should investigate this and see if the actual people conducting interviewers are significantly biased or not.
 ```{r}
 #split into data/software
 round3_data = round3_hired %>% 
@@ -347,120 +266,34 @@ round3_woman = round3_hired %>%
 
 round3_man = round3_hired %>% 
   filter(gender == "Man")
-
-mean(round3_woman$avg_interview)
-mean(round3_man$avg_interview)
 ```
 
+```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+final_genders=table(round3_hired$hired==1, round3_hired$gender)
+rownames(final_genders)[rownames(final_genders) == TRUE] = "Hired"
+rownames(final_genders)[rownames(final_genders) == FALSE] = "Not Hired"
 
-
-```{r}
-#visualizations of round 3 applicants 
-r3_data_gender_plot = round3_data %>% 
-  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF")) +
-  #geom_histogram(colour = "grey", fill = "#6C3082") +
-  theme_minimal() +
-  labs(title = "Data Applicant Gender Breakdown (Round 3)", x = "Gender", y = "Number of Applicants") 
-#do we want a title or a caption for this?
-r3_data_gender_plot
-ggsave("images/r3_data_gender_plot.png", width = 7, height = 4)
-
-r3_software_gender_plot = round3_software %>% 
-  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF")) +
-  #geom_histogram(colour = "grey", fill = "#6C3082") +
-  theme_minimal() +
-  labs(title = "Software Applicant Gender Breakdown (Round 3)", x = "Gender", y = "Number of Applicants")
-r3_software_gender_plot
-#do we want a title or a caption for this?
-ggsave("images/r3_software_gender_plot.png", width = 7, height = 4)
-```
-![](images/r3_data_gender_plot.png)
-![](images/r3_software_gender_plot.png)
-
-
-
-_For each research question, you will want to briefly describe any data manipulation, show some exploratory plots/summary tables, report on any methods you use (i.e. models you fit) and the conclusions you draw from these_
-
-```{r}
-#get counts for each gender in data -> for report
-table(round3_data$gender)
-#get counts for each gender in software -> for report
-table(round3_software$gender)
+kable(final_genders, caption = "Gender Breakdown of Final Hires")
 ```
 
-### Final Hires
+For our analysis, we used two generalized linear models - one with a fixed effect for gender, and one without. We use a log-likelihood test to test whether there is a difference in models when we account for gender (Table 9). We see that the p-value is 0.096, which is significant at only the 10% level. Since we are considering significance only at a 5% level, we can say that this test did not show significant evidence for gender bias in the interviewers; however, this result is still important to note. The significance at a 10% level should not be ignored, especially since the phases in the hiring process done by the AI algorithm did not show any significant results. This may suggest that the people involved in the interview process may have a slight bias in gender, even though we technically did not find significant results at the 5% level. 
 
-```{r}
+```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+finalmodel = glm(hired ~ avg_interview, family = binomial(link='logit'), data = round3_hired)
+#summary(finalmodel)
 
-final_combined = round3_h_int %>% 
-  select(applicant_id, team_applied_for, gender)#= right_join(round3_combined, final_hires)
+finalmodel2 = glm(hired ~ avg_interview + gender, family = binomial(link='logit'), data = round3_hired)
+#summary(finalmodel2)
 
-#split into data/software
-hired_data = final_combined %>% 
-  filter(team_applied_for == "Data") 
-
-hired_software = final_combined %>% 
-  filter(team_applied_for == "Software")
-
+kable(lmtest::lrtest(finalmodel, finalmodel2), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Fixed Effect of Gender in Final Hires")
 ```
-
-```{r}
-#visualization
-final_data_gender_plot = hired_data %>% 
-  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF")) +
-  #geom_histogram(colour = "grey", fill = "#6C3082") +
-  theme_minimal() +
-  labs(title = "Final Hires Gender Breakdown (Data Team)", x = "Gender", y = "Number of Applicants") 
-#do we want a title or a caption for this?
-final_data_gender_plot
-ggsave("images/final_data_gender_plot.png", width = 7, height = 4)
-
-final_software_gender_plot = hired_data %>% 
-  ggplot(aes(x = gender)) + geom_bar(fill = c("#FFC300", "#A381FF")) +
-  #geom_histogram(colour = "grey", fill = "#6C3082") +
-  theme_minimal() +
-  labs(title = "Final Hires Gender Breakdown (Software Team)", x = "Gender", y = "Number of Applicants")
-final_software_gender_plot
-#do we want a title or a caption for this?
-ggsave("images/final_software_gender_plot.png", width = 7, height = 4)
-```
-![](images/final_data_gender_plot.png) 
-<!-- add caption lmao -->
-![](images/final_software_gender_plot.png)
-```{r}
-#get counts for each gender in data -> for report
-table(hired_data$gender)
-#get counts for each gender in software -> for report
-table(hired_software$gender)
-```
-
-```{r}
-# This chunk provides an example of some things you can do with RMarkdown to make your report creation process easier
-
-# read in the data
-black_saber_current_employees <- read_csv("data/black-saber-current-employees.csv")
-
-# create a visualisation
-my_plot <- black_saber_current_employees %>% 
-  ggplot(aes(x = salary)) +
-  geom_bar(colour = "grey", fill = "#6C3082") +
-  theme_minimal() +
-  labs(title = "Look! A title. But do you want a title or a caption for your report?", x = "This is a changed x label")
-
-# save your plot in your images folder, you can specify the height and width, too
-# saving this means you can add the image to your exectuve summary without having to run or rerun the code, if you wish
-#ggsave("images/example.png", width = 7, height = 4)
-my_plot
-# norice how the image is included with the ![](file/path.png) below
-```
-
-![](images/example.png)
 
 ## Promotions 
 
 ## Salary
 
 ```{r, warning=FALSE, message=FALSE}
+# **** claire pls update dis and fix it idfk what goin on
 current_employees = read_csv("data/black-saber-current-employees.csv")
 unique(current_employees$team) # what teams are there?
 count(current_employees, gender) #counts for everything, put these into a table but also do this for the hiring section
@@ -515,13 +348,13 @@ mean(o_retention$n/4)
 # how do we compare these to see if they're significant ?
 ```
 ```{r}
-current_employees %>%
-ggplot(aes(x = gender, y = salary, colour = role_seniority)) +
-geom_boxplot() +
-facet_wrap(~role_seniority) +
-theme_minimal() +
-theme(legend.position = "none", axis.text.y = element_blank()) +
-labs(x = "Sex", y = "Salary") #Change colours
+#current_employees %>%
+#ggplot(aes(x = gender, y = salary, colour = role_seniority)) +
+#geom_boxplot() +
+#facet_wrap(~role_seniority) +
+#theme_minimal() +
+#theme(legend.position = "none", axis.text.y = element_blank()) +
+#labs(x = "Sex", y = "Salary") #Change colours
 ```
 at first glance the salaries per seniority level per gender is generally even, though women seem to be less than men... let's investigate if this is significant or not
 
@@ -535,41 +368,41 @@ theme_minimal() +
 theme(legend.position = "none", axis.text.y = element_blank()) +
 labs(x = "Seniority Level", y = "Salary")
 ```
-lol wait why is entry level mean being paid more? We expect to see an upward trend...
+<!-- lol wait why is entry level mean being paid more? We expect to see an upward trend... -->
 
-We want to investigate whether or not the salaries are fair based on talent and value...
-The factors we want to use to investigate in that are the leadership and seniority, and productivity, i think that's what talent and value are based in right?
+<!-- We want to investigate whether or not the salaries are fair based on talent and value... -->
+<!-- The factors we want to use to investigate in that are the leadership and seniority, and productivity, i think that's what talent and value are based in right? -->
 ```{r}
 # i know we need a random effect for (1+leadership | role_seniority) BECAUSE the leadership is dependent on their seniority, so like... the seniority is the random effect, but then there is a fixed effect for leadership *within* that role....
 # buttttt what model do we run? 
 
 
-model_sal = lmer(salary~gender+(1|employee_id)+(1|team)+(1|role_seniority), data=current_employees)
-summary(model_sal)
+#model_sal = lmer(salary~gender+(1|employee_id)+(1|team)+(1|role_seniority), data=current_employees)
+#summary(model_sal)
 
-model_sal2 = lmer(salary~gender+(1|employee_id)+(1|role_seniority), data=current_employees)
-summary(model_sal2)
+#model_sal2 = lmer(salary~gender+(1|employee_id)+(1|role_seniority), data=current_employees)
+#summary(model_sal2)
 
-model_sal3 = lmer(salary~(1|employee_id)+(1|team)+(1|role_seniority), data=current_employees)
-summary(model_sal3)
+#model_sal3 = lmer(salary~(1|employee_id)+(1|team)+(1|role_seniority), data=current_employees)
+#summary(model_sal3)
 
-model_sal4 = lmer(salary~gender+(1|employee_id)+(1|team), data=current_employees)
-summary(model_sal4) #removed role seniority random effect... test for difference
+#model_sal4 = lmer(salary~gender+(1|employee_id)+(1|team), data=current_employees)
+#summary(model_sal4) #removed role seniority random effect... test for difference
 
-lmtest::lrtest(model_sal, model_sal2)
+#lmtest::lrtest(model_sal, model_sal2)
 #this shows us that salaries differ depending on teams, so we use the more complex model to investigate the diff between gender
 
-lmtest::lrtest(model_sal, model_sal3)
+#lmtest::lrtest(model_sal, model_sal3)
 #significaant result.... when we have a fixed effect for gender, then the models differ, which means that salary might be biased, holding these random effects 
-lmtest::lrtest(model_sal, model_sal4) #ok there is a difference, between RE for seniority or not so it has to be something else affecting it... 
+#lmtest::lrtest(model_sal, model_sal4) #ok there is a difference, between RE for seniority or not so it has to be something else affecting it... 
 
 #model1 = glm(salary~productivity + (1 | employee_id) + (1+leadership_for_level | role_seniority) + (1|financial_q) + (1|team), data = current_employees)
 ```
 
 ```{r}
 #idk another random model lets see if it works
-model_sal3 = lmer(salary~(1 + role_seniority|employee_id)+(1|team), data=current_employees)
-summary(model_sal3)
+#model_sal3 = lmer(salary~(1 + role_seniority|employee_id)+(1|team), data=current_employees)
+#summary(model_sal3)
 ```
 
 ## Discussion
@@ -586,7 +419,7 @@ _In this section you will summarize your findings across all the research questi
 
 **Yian Wang**. Yian is a junior data analyst at The Hive. She specializes in data visualization and making actionable insights. Yian earned her Bachelor of Science, double majoring in Statistics and Economics, and minoring in Mathematics from the University of Toronto in 2021. 
 
-**Claire Hsiung**. Datana is a junior consultant with Eminence Analytics. They specialize in reproducible analysis and statistical communication. Datana earned their Bachelor of Science, Majoring in Computer Science and Statistics from the University of Toronto in 2024.
+**Claire Hsiung**. Claire is a junior financial analyst at The Hive. She specializes in data visualization and making actionable insights. Yian earned her Bachelor of Science, double majoring in Statistics and Economics
 
 ## Code of ethical conduct
 
