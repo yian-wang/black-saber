@@ -364,7 +364,9 @@ promomodel5 <- glm(promoted ~ gender + productivity + role_seniority, family = b
 info5 <- summary(promomodel5)$coefficients
 kable(info5, caption = "Model 5: Promotion with gender, productivity and role seniority")   
 ```
-Accounting for role seniority, our analysis tells us that role seniority is an important variable in our model. Specifically, as
+Our analysis tells us that role seniority is an important variable in our model. Specifically, as role seniority increases, we expected the odds of being promoted to increase as well (by about 1.14 times more likely). However, although it does reduce the effect we see on women being promoted, it does not change it by much. The odds of women being promoted is still around 30% less than men. \
+
+Using Model 5 as our final model, we see that this relationship between gender, women specifically, is significant to the 1%. Even when accounting for significant variables such as productivity and role seniority, we found that the odds of women at Black Saber being promoted was about exp(-0.38) = 0.68 or about 40% less likely to be promoted. 
 
 ## Salary
 
@@ -468,7 +470,9 @@ More specifically, we can expect to see women and those who have indicated "pref
 _In this section you will summarize your findings across all the research questions and discuss the strengths and limitations of your work. It doesn't have to be long, but keep in mind that often people will just skim the intro and the discussion of a document like this, so make sure it is useful as a semi-standalone section (doesn't have to be completely standalone like the executive summary)._
 
 In Black Saber's hiring process, we investigate whether the algorithm that grades each applicant is biased towards a certain gender. By running a log-likelihood comparison of two nested generalized linear models (one with a fixed effect for gender, one without) on each of the two AI-rated phases. We found that in both phases, there was insufficient evidence to show that the algorithm was biased towards any gender. Moreover, we considered whether or not the algorithm was more biased towards a certain gender within each team; however, we did not find a significant difference when we added a random effect for team in either phase. \newline
-The final, human-involved interview round of Black Saber's hiring process may be something of concern. By running a log-likelihood comparison of two nested generalized linear models (one with a fixed effect for gender, one without) on the average interview rating given by Black Saber employees, we find a slight bias towards males. Despite a larger number of women than men that initially applied to Black Saber's new grad program, and more women moving forward through the phases ranked by the algorithm, only 1 woman on each team was hired. We found bias at the 10% significance level, which we recommend further investigating - we will discuss the data required for this in our limitations section. 
+The final, human-involved interview round of Black Saber's hiring process may be something of concern. By running a log-likelihood comparison of two nested generalized linear models (one with a fixed effect for gender, one without) on the average interview rating given by Black Saber employees, we find a slight bias towards males. Despite a larger number of women than men that initially applied to Black Saber's new grad program, and more women moving forward through the phases ranked by the algorithm, only 1 woman on each team was hired. We found bias at the 10% significance level, which we recommend further investigating - we will discuss the data required for this in our limitations section. \
+
+In Black Saber's promotion process, we looked to find important variables that the company considers when promoting their employees by comparing different GLM models that look to predict the odds of being promoted. What we found was that while role seniority and productivity are important considerations in the process, gender was the most significant across all models. More specifically we found that women were about 30% less likely to be promoted than their male counterparts which was significant in the 1% level, providing evidence that there is a bias in favour of men being promoted. It was difficult to find sufficient evidence of any bias against those who preferred not to disclose their gender, most likely due to the small sample size of that group.\  
 
 
 ### Strengths and limitations
@@ -476,7 +480,11 @@ something about systemic barriers women face in the professional world
 also small sample size in last round where we found some bias so it might not be that improtant
 We recognize we may not have all the right answers - there may be additional insights that are also helpful. We are not declaring that our ideas are the best and should be necessarily followed - these are merely our honest suggestions from the analyses we have run.
 
-10% signficance in interviews- we recommend some HR stuff..... we should see what exactly they're rating them on , and whos interviewing the people to properly investigate whether or not theres bias in the hiring process.
+10% signficance in interviews- we recommend some HR stuff..... we should see what exactly they're rating them on , and whos interviewing the people to properly investigate whether or not theres bias in the hiring process.\
+
+Given the conclusions about the data on current employee, we found that gender was consistently an important variable when predicting promotions. An important consideration to further investigate this relationship would be to see what the exact promotion process, are managers and those in higher roles overseeing promotions? Do promotions have to be approved by vice-presidents? These insights would give us a better direction of the root of the bias we found.\ 
+
+As previously mentioned, it was difficult to find significant evidence of bias towards those who preferred not to state their gender due to the small sample size in each quarter.
 
 
 \newpage
