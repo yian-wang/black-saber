@@ -26,18 +26,6 @@ library(kableExtra)
 knitr::opts_chunk$set(include=FALSE)
 ```
 
-# General comments (you can delete this section)
-
-_You can delete this section, and if you want to check what it said, just open a template from the package again. You don't have to use this particular template, but you DO need to write you report in RMarkdown and include a cover page._
-
-_The cover page must have:_
-
-*	_A title and subtitle_
-* _"Report prepared for Black Saber Software by" your company name_
-*	_Date (assessment submission date is fine)_
-
-_You can change the colour of this cover to any colour you would like by replacing 6C3082 in the YAML above (line 11) to another hex code. You could use this tool to help you:_ https://htmlcolorcodes.com/color-picker/
-
 \newpage
 # Executive summary
 
@@ -52,8 +40,6 @@ _Guidelines for the executive summary:_
 
 \newpage
 # Technical report
-_This part of the report is much more comprehensive than the executive summary. The audience is statistics/data-minded people, but you should NOT include code or unformatted R output here._
-
 
 ## Introduction
 
@@ -62,7 +48,7 @@ A critical area of concern in today's workplace is gender bias, and Black Saber 
 
 ### Research questions
 _Use bullet points to to describe the research questions you are going to address. Write in full sentences._
-* Hiring
+* Does the hiring algorithm favour a certain gender? Do the humans conducting the interviews have bias towards a certain gender?
 * Promotion
 * Salary
 
@@ -97,7 +83,7 @@ sum(is.na(phase2))
 sum(is.na(phase3))
 ```
 
-```{r}
+```{r,warning=FALSE, message=FALSE}
 round1_2 = full_join(phase1, phase2)
 round1_2 = round1_2 %>% 
   #technical skills is only under hiring2, which means if an applicant's id has NA for this column, they did not move onto the next round
@@ -106,12 +92,6 @@ round1_2 = round1_2 %>%
   mutate(gender = fct_relevel(gender, "Prefer not to say", after = 2)) %>% 
   select(-c(technical_skills, writing_skills, leadership_presence, speaking_skills)) #remove phase 2 data
 
-#split into software/data
-#round1_data = round1_2 %>% 
-  #filter(team_applied_for == "Data")
-
-#round1_software = round1_2 %>% 
-  #filter(team_applied_for == "Software")
 ```
 
 ```{r, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
@@ -122,7 +102,7 @@ kable(table(round1_2$gender), col.names = c("Gender", "Quantity"), caption = "Ge
 We then compare the number of applicants that identify as either male, female, or preferred not to specify (Table 1). We see that the applicant pool seems to be fairly even between 311 women and 291 men; with a smaller portion of 11 applicants who preferred not to specify. The even distribution between women and men is a good basis to investigate whether or not there is gender bias in the AI algorithm that determines who moves onto the next round. We investigate this effect with generalized linear models and generalized linear mixed models, with the response variable being a binary response of whether or not the applicant moved onto the next round. \newline
 Since the algorithm considers each factor (ie. existence of cover letter, resume, level of GPA, work experience, and extracurriculars), these will be the fixed effects in the base generalized linear model. \newline
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 #response is binary so we use glm so we can use family = binomial
 
 #normal linear model
@@ -131,7 +111,7 @@ hiring1_model = glm(next_round ~ cv + gpa + cover_letter + extracurriculars + wo
 
 Next, we created models with a fixed effect for gender. This second model is the same as the base linear model, but with an additional fixed effect of gender. The third model is a generalized linear mixed model, and adds an additional random effect for the team that the applicant applied for. We want to see if this potential bias exists in one, or both of the teams. \newline
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 # add fixed effect for gender
 hiring1_gender_model = glm(next_round ~ cv + gpa + cover_letter + extracurriculars + work_experience + gender, data = round1_2, family = binomial(link = "logit"))
 summary(hiring1_gender_model)
@@ -162,7 +142,7 @@ kable(lmtest::lrtest(hiring1_model, hiring1_gender_model), col.names = c("# Df",
 ### Phase 2
 We wrangled the data in phase 2 similarly to how we did in phase 1. We fully joined the phase 2 and phase 3 datasets, and added a column denoting which applicants had an interviewer rating, which is how we determined who moved onto the third round. We denoted "moved forward to the next round" a 1, and "did not move forward" as 0. Again, if the applicant did not have an interviewer rating, it meant that they did not move forward in the process since we confirmed in the beginning that there were no missing values prior to the wrangling process.
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 round2_3 = full_join(phase2, phase3)
 #remove phase 2 columns
 round2_3 = round2_3 %>% 
@@ -206,12 +186,9 @@ summary(hiring2_team_gender)
 #compare the effect between gender only and gender (rand int) + random slope for team 
 kable(lmtest::lrtest(hiring2_gender_model, hiring2_team_gender), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Random Effect of Team in Phase 2")
 
-#hmm seems like not significant effect... we can continue with our simpler model without the difference between teams
-#test the simple model against the original model with no random intercept for gender...investigate if there is a difference
+#seems like not significant effect... we can continue with our simpler model without the difference between teams
+#test the simple model against the original model with no random intercept for gender and investigate if there is a difference
 kable(lmtest::lrtest(hiring2_model, hiring2_gender_model), col.names = c("# Df", "Log Likelihod", "Df","Chi-squared", "P-value"), caption = "Log Likelihood Test for Fixed Effect of Gender in Phase 2")
-
-#since all these models are nested we can use lmtest to compare them... 
-#confint()
 
 #high chi squared for both - we're good! no diff between model that seps gender 
 ```
@@ -409,25 +386,35 @@ labs(x = "Seniority Level", y = "Salary")
 
 _In this section you will summarize your findings across all the research questions and discuss the strengths and limitations of your work. It doesn't have to be long, but keep in mind that often people will just skim the intro and the discussion of a document like this, so make sure it is useful as a semi-standalone section (doesn't have to be completely standalone like the executive summary)._
 
+In Black Saber's hiring process, we investigate whether the algorithm that grades each applicant is biased towards a certain gender. By running a log-likelihood comparison of two nested generalized linear models (one with a fixed effect for gender, one without) on each of the two AI-rated phases. We found that in both phases, there was insufficient evidence to show that the algorithm was biased towards any gender. Moreover, we considered whether or not the algorithm was more biased towards a certain gender within each team; however, we did not find a significant difference when we added a random effect for team in either phase. \newline
+The final, human-involved interview round of Black Saber's hiring process may be something of concern. By running a log-likelihood comparison of two nested generalized linear models (one with a fixed effect for gender, one without) on the average interview rating given by Black Saber employees, we find a slight bias towards males. Despite a larger number of women than men that initially applied to Black Saber's new grad program, and more women moving forward through the phases ranked by the algorithm, only 1 woman on each team was hired. We found bias at the 10% significance level, which we recommend further investigating - we will discuss the data required for this in our limitations section. 
+
+
 ### Strengths and limitations
+something about systemic barriers women face in the professional world
+also small sample size in last round where we found some bias so it might not be that improtant
+We recognize we may not have all the right answers - there may be additional insights that are also helpful. We are not declaring that our ideas are the best and should be necessarily followed - these are merely our honest suggestions from the analyses we have run.
+
+10% signficance in interviews- we recommend some HR stuff..... we should see what exactly they're rating them on , and whos interviewing the people to properly investigate whether or not theres bias in the hiring process.
+
 
 \newpage
 # Consultant information
 ## Consultant profiles
 
-*Complete this section with a brief bio for each member of your group. If you are completing the project individually, you only need to complete one for yourself. In that case, change the title of this section to 'Consultant profile' instead. Examples below. This section is only marked for completeness, clarity and professionalism, not 'truth' so you can write it as if we're a few years in the future. Put your current degree in as completed and/or add your first choice grad school program, whatever you like. What skills related skills would you most like to highlight? What job title do you want?*
+**Yian Wang**. Yian is a junior data analyst at The Hive. She specializes in reproducible visualization and making actionable insights. Yian earned her Bachelor of Science, double majoring in Statistics and Economics, and minoring in Mathematics from the University of Toronto in 2021. 
 
-**Yian Wang**. Yian is a junior data analyst at The Hive. She specializes in data visualization and making actionable insights. Yian earned her Bachelor of Science, double majoring in Statistics and Economics, and minoring in Mathematics from the University of Toronto in 2021. 
-
-**Claire Hsiung**. Claire is a junior financial analyst at The Hive. She specializes in data visualization and making actionable insights. Yian earned her Bachelor of Science, double majoring in Statistics and Economics
+**Claire Hsiung**. Claire is a junior financial analyst at The Hive. She specializes in interpretable visualizations and Big Data. Claire earned her Bachelor of Science, double majoring in Statistics and Economics from the University of Toronto in 2021.
 
 ## Code of ethical conduct
 
-_This section should be fairly short, no more than half a page. Assume a general audience, much like your executive summary._
+Not only is The Hive passionate about making actionable insights, but we also practice ethical statistics. Our main values lie in, but are not limited to: 
+
+* Confidentiality of client information and respecting their rights
+* Using appropriate methods and interpreting them correctly and completely
+* Reporting results impartially even if they may pose harm to the parties involved, so as to encourage action against our insights so as to not fall into trouble in the future
+* Only using methods we have sufficient knowledge in to use in order to prevent any misinterpretation and summary of the data
+* Only using data that is provided to us directly by Black Saber Software, and not to scrape other data that we do not have permission to access
+* Declaring our relationship with the clients (ie. financial or other interests) to maintain transparency regarding the influence it may have on the outcomes 
 
 
-* _Make at least three relevant statements about your company’s approach to ethical statistical consulting. These should be appropriately in line with professional conduct advice like the (Statistical Society of Canada Code of Conduct)[https://ssc.ca/sites/default/files/data/Members/public/Accreditation/ethics_e.pdf] or the (Ethical Guidelines for Statistical Practice from the American Statistical Society)[https://www.amstat.org/ASA/Your-Career/Ethical-Guidelines-for-Statistical-Practice.aspx]. For example, "the customer is always right" ISN’T the type of thing an ethical statistical consultant would include._
-*	_Be very careful not to just copy and paste from these other documents! Put things in your own words._
-
-
-__Final advice: KNIT EARLY AND OFTEN!__
