@@ -348,19 +348,23 @@ Does productivity explain this relationship we see?
 ```{r, include=TRUE}
 #what about productivity?
 productivity = promotions %>% mutate(productivity = ifelse(productivity == 50, "Satisfactory", (ifelse(productivity > 50, "Better than expected", "Unproductive")))) %>% mutate(productivity = factor(productivity, levels = c("Unproductive", "Satisfactory", "Better than expected")))
-promomodel4 <- glm(promoted ~ gender + productivity, family = binomial(link = "logit"), data = productivity) 
+
+promomodel4 <- glm(promoted ~ gender + productivity, family = binomial(link = "logit"), data = promotions) 
 info4 <- summary(promomodel4)$coefficients
 kable(info4, caption = "Model 4: Promotion with gender and productivity values") #productivity is significant but it does not change the the difference we see in women being promoted 
 
-#what if productivity was binary? 
 ```
-We found that productivity, specifically, whether someone was more productive than expected, lowered their odds of being promoted, which was an interesting find. However, it still did not change the relationship with women and promotions by very much. That is we still find that women are less likely to be promoted. 
+We found that productivity, specifically, whether someone was more productive than expected, lowered their odds of being promoted, which was an interesting find. However, it still did not change the relationship with women and promotions by very much. That is we still find that women are less likely to be promoted. \
+
+Finally, we explored the relationship of role seniority with promotions since on the surface, role seniority has an ambiguous relationship with being promoted. On one side, role seniority could be an indication of productivity and leadership levels and affect promotions positively. But on the other hand, the expectations and skills required to be promoted in the higher roles, may make it more difficult to be promoted (there are also less spots, i.e. entry level roles vs vice-president). \ 
+
 ```{r, include=TRUE}
 #what about role seniority? more role seniority could increase your chances of being promoted but at the same time in very high levels there are less spots 
 promomodel5 <- glm(promoted ~ gender + productivity + role_seniority, family = binomial(link = "logit"), data = promotions) 
 info5 <- summary(promomodel5)$coefficients
 kable(info5, caption = "Model 5: Promotion with gender, productivity and role seniority")   
 ```
+Accounting for role seniority, our analysis tells us that role seniority is an important variable in our model. Specifically, as
 
 ## Salary
 
