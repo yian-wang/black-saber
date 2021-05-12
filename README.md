@@ -1,6 +1,6 @@
 # Bias in Black Saber's Hiring, Promotions, and Salaries
 A project adapted from a Data Analysis course at the University of Toronto (STA303/1002)
-#### Project Status: Active
+#### Project Status: Completed
 #### Contributors: 
 * [Claire Hsiung](https://github.com/claire-hsiung)
 * [Yian Wang](https://github.com/yian-wang)
